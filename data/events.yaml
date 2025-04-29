@@ -254,3 +254,121 @@
   location:
     city: "New York"
     country: "United States"
+
+# Multi-country/city test with parent-child structure
+- id: "world-tour"
+  title: "World Tour 2024"
+  start: "2024-01-01"
+  end: "2024-06-30"
+  type: "range"
+  metadata: "Six-month global business development tour"
+  color: "#8E44AD"
+  category: "travel"
+  isParent: true
+  isImportant: true
+  location:
+    city: "New York"
+    country: "United States"
+
+- id: "us-leg"
+  title: "US Tour"
+  start: "2024-01-01"
+  end: "2024-01-31"
+  type: "range"
+  metadata: "East and West Coast client meetings"
+  color: "#3498DB"
+  category: "travel"
+  parentId: "world-tour"
+  location:
+    city: "New York"
+    country: "United States"
+
+- id: "europe-leg"
+  title: "European Tour"
+  start: "2024-02-01"
+  end: "2024-03-31"
+  type: "range"
+  metadata: "Major European cities for expansion"
+  color: "#16A085"
+  category: "travel"
+  parentId: "world-tour"
+  location:
+    city: "London"
+    country: "United Kingdom"
+
+- id: "asia-leg"
+  title: "Asia Tour"
+  start: "2024-04-01"
+  end: "2024-05-31"
+  type: "range"
+  metadata: "Asian market development"
+  color: "#E74C3C"
+  category: "travel"
+  parentId: "world-tour"
+  location:
+    city: "Tokyo"
+    country: "Japan"
+
+- id: "berlin-conference"
+  title: "Berlin Tech Summit"
+  start: "2024-03-15"
+  end: "2024-03-20"
+  type: "range"
+  metadata: "Major industry conference during European tour"
+  color: "#2ECC71"
+  category: "travel"
+  parentId: "europe-leg"
+  location:
+    city: "Berlin"
+    country: "Germany"
+
+# Multiple categories and overlapping events test
+- id: "certification-program"
+  title: "Cloud Certification Program"
+  start: "2022-01-01"
+  end: "2022-06-30"
+  type: "range"
+  metadata: "Professional development certification"
+  color: "#F39C12"
+  category: "education"
+  isImportant: true
+  location:
+    city: "San Francisco"
+    country: "United States"
+
+- id: "leadership-training"
+  title: "Leadership Training"
+  start: "2022-03-01"
+  end: "2022-05-15"
+  type: "range"
+  metadata: "Executive leadership development program"
+  color: "#D35400"
+  category: "education"
+  location:
+    city: "Boston"
+    country: "United States"
+
+- id: "team-project-1"
+  title: "Product Redesign"
+  start: "2022-02-15"
+  end: "2022-04-30"
+  type: "range"
+  metadata: "Major UI/UX redesign project"
+  color: "#27AE60"
+  category: "project"
+  isImportant: true
+  location:
+    city: "San Francisco"
+    country: "United States"
+
+- id: "team-project-2"
+  title: "Backend Migration"
+  start: "2022-01-15" 
+  end: "2022-05-20"
+  type: "range"
+  metadata: "Cloud infrastructure migration"
+  color: "#2980B9"
+  category: "project"
+  location:
+    city: "San Francisco"
+    country: "United States"

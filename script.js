@@ -1,5 +1,16 @@
 // Interactive Timeline Script
 document.addEventListener('DOMContentLoaded', () => {
+  // Polyfill for crypto.randomUUID which might be needed by testing frameworks
+  if (!crypto.randomUUID) {
+    crypto.randomUUID = function() {
+      // Simple implementation of UUID for browsers that don't support it
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    };
+  }
+  
   // Initialize Semantic UI components
   if (window.$ && $.fn.dropdown) {
     $('.ui.dropdown').dropdown();
@@ -139,8 +150,18 @@ document.addEventListener('DOMContentLoaded', () => {
     importFile.value = '';
   });
 
-  // Export current events to YAML file
+  // Export current events to YAML file (using latest data from the UI)
   exportButton.addEventListener('click', () => {
+    // Ensure we have the latest data by recalculating rows before export
+    Object.keys(groupByCategory(events)).forEach(category => {
+      const categoryEvents = events.filter(e => (e.category || 'General') === category && e.type === 'range');
+      const sortedEvents = sortByDate(categoryEvents);
+      
+      sortedEvents.forEach(event => {
+        event.row = calculateEventRow(event, categoryEvents);
+      });
+    });
+    
     const exportData = events.map(d => {
       const ev = { 
         title: d.title, 
@@ -433,6 +454,7 @@ document.addEventListener('DOMContentLoaded', () => {
       deleteEventBtn.className = 'ui negative button';
       deleteEventBtn.textContent = 'Delete Event';
       deleteEventBtn.style.marginRight = '10px';
+      deleteEventBtn.type = 'button'; // Ensure it's not a submit button
       deleteEventBtn.addEventListener('click', (e) => {
         e.preventDefault();
         deleteEvent(editingId);
@@ -581,8 +603,25 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Calculate durations per country
     const countryDurations = {};
-    // Also track cities for tooltips
+    // Also track cities for tooltips and dots
     const cityData = {};
+    
+    // Structure to store city coordinates for dots
+    const cities = [];
+    
+    // Load world cities data (or we would in a real implementation)
+    // For now, let's create a simplified mapping
+    const cityCoordinates = {
+      "New York": [-74.0059, 40.7128],
+      "San Francisco": [-122.4194, 37.7749],
+      "Napa Valley": [-122.2746, 38.5025],
+      "London": [-0.1278, 51.5074],
+      "Singapore": [103.8198, 1.3521],
+      "Tokyo": [139.6917, 35.6895],
+      "Berlin": [13.4050, 52.5200],
+      "Boston": [-71.0589, 42.3601],
+      // Add more cities as needed
+    };
     
     events.forEach(d => {
       // Allow for both range events and single-day events
@@ -621,6 +660,18 @@ document.addEventListener('DOMContentLoaded', () => {
           
           if (city) {
             cityData[country][city] = (cityData[country][city] || 0) + days;
+            
+            // Add city to our list for dots if we have coordinates
+            if (cityCoordinates[city] && !cities.find(c => c.name === city)) {
+              cities.push({
+                name: city,
+                coordinates: cityCoordinates[city],
+                days: days,
+                color: d.color || '#3B82F6',
+                event: d.title,
+                country: country
+              });
+            }
           }
         }
       }
@@ -700,6 +751,48 @@ document.addEventListener('DOMContentLoaded', () => {
       .on('mouseout', function() {
         mapTooltip.style('opacity', 0);
         d3.select(this).attr('stroke', '#ccc').attr('stroke-width', 0.5);
+      });
+      
+    // Add city dots
+    svg.selectAll('circle.city-dot')
+      .data(cities)
+      .join('circle')
+      .attr('class', 'city-dot')
+      .attr('cx', d => projection(d.coordinates)[0])
+      .attr('cy', d => projection(d.coordinates)[1])
+      .attr('r', d => Math.min(8, 3 + Math.sqrt(d.days) * 0.5))  // Size based on days, but with reasonable limits
+      .attr('fill', d => d.color)
+      .attr('stroke', 'white')
+      .attr('stroke-width', 0.5)
+      .attr('opacity', 0.8)
+      .style('filter', 'drop-shadow(0 0 2px rgba(0,0,0,0.3))')
+      .style('cursor', 'pointer')
+      .on('mouseover', function(event, d) {
+        d3.select(this)
+          .attr('r', d => Math.min(10, 4 + Math.sqrt(d.days) * 0.5))
+          .attr('opacity', 1);
+        
+        let tooltipContent = `
+          <div style="font-weight: bold; margin-bottom: 3px;">${d.name}, ${d.country}</div>
+          <div>${d.event}</div>
+          <div>${Math.round(d.days)} days</div>
+        `;
+        
+        mapTooltip.html(tooltipContent)
+          .style('opacity', 1)
+          .style('left', (event.pageX + 10) + 'px')
+          .style('top', (event.pageY - 28) + 'px');
+      })
+      .on('mousemove', function(event) {
+        mapTooltip
+          .style('left', (event.pageX + 10) + 'px')
+          .style('top', (event.pageY - 28) + 'px');
+      })
+      .on('mouseout', function(event, d) {
+        d3.select(this)
+          .attr('r', d => Math.min(8, 3 + Math.sqrt(d.days) * 0.5))
+          .attr('opacity', 0.8);
+        mapTooltip.style('opacity', 0);
       });
     
     // Add a title
@@ -1101,16 +1194,8 @@ document.addEventListener('DOMContentLoaded', () => {
           });
           actionsDiv.appendChild(editBtn);
           
-          // Delete button
-          const deleteBtn = document.createElement('button');
-          deleteBtn.className = 'action-button delete-button';
-          deleteBtn.innerHTML = '✕';
-          deleteBtn.title = 'Delete';
-          deleteBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            deleteEvent(event.id);
-          });
-          actionsDiv.appendChild(deleteBtn);
+          // We're removing the delete button from the chart as requested
+          // and only keeping it in the edit form
           
           // Click handler for entire event
           eventDiv.addEventListener('click', () => {
@@ -1174,16 +1259,8 @@ document.addEventListener('DOMContentLoaded', () => {
           });
           actionsDiv.appendChild(editBtn);
           
-          // Add delete button
-          const deleteBtn = document.createElement('button');
-          deleteBtn.className = 'action-button delete-button';
-          deleteBtn.innerHTML = '✕';
-          deleteBtn.title = 'Delete';
-          deleteBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            deleteEvent(event.id);
-          });
-          actionsDiv.appendChild(deleteBtn);
+          // We're removing the delete button from the chart as requested
+          // and only keeping it in the edit form
           
           // Add container to timeline
           timelineArea.appendChild(milestoneContainer);
@@ -1539,16 +1616,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Add scroll wheel zoom with smoother animation
-    container.addEventListener('wheel', function(event) {
-      event.preventDefault();
-      
-      // Don't handle events during an update
+    let zoomTimeout = null;
+    let pendingZoom = null;
+    let lastWheelTime = 0;
+    
+    // Function to process zoom events
+    function processZoom(event) {
       if (state.isZooming) return;
       state.isZooming = true;
       
       // Determine direction and create zoom factor
       const direction = event.deltaY < 0 ? -1 : 1;
-      const factor = direction < 0 ? 0.9 : 1.1; // Gentler zoom factors for smoother zoom
+      // Use more subtle zoom factor for smoother zooming
+      const factor = direction < 0 ? 0.95 : 1.05;
       
       // Get mouse position for zoom target
       const containerRect = container.getBoundingClientRect();
@@ -1572,22 +1652,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const oldStart = new Date(state.currentStartDate);
         const oldEnd = new Date(state.currentEndDate);
         
-        // Set up animation
-        const totalFrames = 15; // More frames for smoother animation
+        // Just update the display immediately for responsiveness
+        currentMonthDisplay.textContent = `${formatMonth(newStart)} - ${formatMonth(newEnd)}`;
+        
+        // Set up animation with more frames for smoother animation
+        const totalFrames = 20;
         let currentFrame = 0;
         
+        // Update document title to help with debugging
+        document.title = `Zooming: ${factor < 1 ? 'In' : 'Out'}`;
+        
         function animateZoom() {
-          if (currentFrame >= totalFrames) {
-            // Final update with exact target dates
-            state.currentStartDate = newStart;
-            state.currentEndDate = newEnd;
-            currentMonthDisplay.textContent = `${formatMonth(state.currentStartDate)} - ${formatMonth(state.currentEndDate)}`;
-            update();
-            state.isZooming = false;
-            return;
-          }
-          
-          // Calculate interpolated dates
+          // Calculate interpolated dates using easing for smoother movement
           const progress = easeInOutCubic(currentFrame / totalFrames);
           const startDiff = newStart.getTime() - oldStart.getTime();
           const endDiff = newEnd.getTime() - oldEnd.getTime();
@@ -1595,18 +1671,26 @@ document.addEventListener('DOMContentLoaded', () => {
           const interpolatedStart = new Date(oldStart.getTime() + startDiff * progress);
           const interpolatedEnd = new Date(oldEnd.getTime() + endDiff * progress);
           
-          // Update state and display
+          // Update state
           state.currentStartDate = interpolatedStart;
           state.currentEndDate = interpolatedEnd;
           state.isZoomed = true;
           
-          // Update the UI
-          currentMonthDisplay.textContent = `${formatMonth(state.currentStartDate)} - ${formatMonth(state.currentEndDate)}`;
-          update();
+          // Only update the UI on the last frame
+          if (currentFrame === totalFrames - 1) {
+            update();
+            state.isZooming = false;
+            document.title = 'Timeline'; // Reset title
+          } else {
+            // Just update the month display for other frames
+            currentMonthDisplay.textContent = `${formatMonth(interpolatedStart)} - ${formatMonth(interpolatedEnd)}`;
+          }
           
-          // Next frame
-          currentFrame++;
-          requestAnimationFrame(animateZoom);
+          // Next frame or finish
+          if (currentFrame < totalFrames - 1) {
+            currentFrame++;
+            requestAnimationFrame(animateZoom);
+          }
         }
         
         // Start animation
@@ -1614,6 +1698,46 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         state.isZooming = false;
       }
+    }
+    
+    // Add wheel event listener
+    container.addEventListener('wheel', function(event) {
+      event.preventDefault();
+      
+      // Don't handle events during an update if we're already in the middle of a zoom animation
+      if (state.isZooming && !pendingZoom) return;
+      
+      // Throttle wheel events to improve performance
+      const now = Date.now();
+      if (now - lastWheelTime < 16) { // 60fps max
+        if (pendingZoom) {
+          // Update pending zoom parameters based on new wheel event
+          pendingZoom.deltaY += event.deltaY;
+        } else {
+          // Create a new pending zoom
+          pendingZoom = {
+            deltaY: event.deltaY,
+            clientX: event.clientX
+          };
+        }
+        
+        // Clear any existing timeout
+        if (zoomTimeout) {
+          clearTimeout(zoomTimeout);
+        }
+        
+        // Set a new timeout to process the zoom after a short delay
+        zoomTimeout = setTimeout(() => {
+          processZoom(pendingZoom);
+          pendingZoom = null;
+          zoomTimeout = null;
+        }, 50); // 50ms delay for better performance
+        
+        return;
+      }
+      
+      lastWheelTime = now;
+      processZoom(event);
     }, { passive: false });
     
     // Handle drag to pan
