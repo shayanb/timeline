@@ -1,0 +1,116 @@
+- title: "Graduated College"
+  start: "2019-05-15"
+  life_event: true
+  metadata: "Bachelor's in Computer Science"
+  color: "#4CAF50"
+
+- title: "First Job"
+  start: "2019-07-01"
+  life_event: true
+  metadata: "Software Engineer at TechCorp"
+  color: "#2196F3"
+
+- title: "Moved to San Francisco"
+  start: "2020-02-15"
+  life_event: true
+  metadata: "Relocated for new opportunity"
+
+- title: "Got Married"
+  start: "2021-06-25"
+  life_event: true
+  metadata: "Wedding ceremony in Napa Valley"
+  color: "#E91E63"
+
+- title: "Bought First House"
+  start: "2022-03-10"
+  life_event: true
+  metadata: "Home ownership milestone"
+  color: "#9C27B0"
+
+- title: "Had First Child"
+  start: "2023-01-15"
+  life_event: true
+  metadata: "Welcome baby Emma!"
+  color: "#FF9800"
+
+- title: "Initial Research"
+  start: "2021-01-01"
+  end: "2021-02-28"
+  metadata: "Market research and competitor analysis"
+  color: "#2196F3"
+
+- title: "Design Sprint"
+  start: "2021-03-15"
+  end: "2021-03-19"
+  metadata: "Product design workshop"
+  color: "#9C27B0"
+
+- title: "MVP Development"
+  start: "2021-04-01"
+  end: "2021-06-30"
+  metadata: "Building minimum viable product"
+  color: "#4CAF50"
+
+- title: "Alpha Testing"
+  start: "2021-07-01"
+  end: "2021-08-15"
+  metadata: "Internal testing phase"
+  color: "#FF9800"
+
+- title: "Beta Launch"
+  start: "2021-09-01"
+  type: "milestone"
+  metadata: "Public beta release"
+  color: "#E91E63"
+
+- title: "Version 1.0"
+  start: "2021-12-01"
+  type: "milestone"
+  metadata: "Official product launch"
+  color: "#2196F3"
+
+- title: "Major Update 2.0"
+  start: "2022-06-15"
+  type: "milestone"
+  metadata: "Significant feature release"
+  color: "#4CAF50"
+
+- title: "Company Founded"
+  start: "2018-01-01"
+  type: "milestone"
+  metadata: "Initial founding with 3 employees"
+  color: "#2196F3"
+
+- title: "Seed Funding"
+  start: "2018-06-15"
+  type: "milestone"
+  metadata: "Raised $500K seed round"
+  color: "#4CAF50"
+
+- title: "First Office"
+  start: "2018-09-01"
+  end: "2020-08-31"
+  metadata: "First physical office space"
+
+- title: "Series A"
+  start: "2019-03-20"
+  type: "milestone"
+  metadata: "Raised $5M Series A"
+  color: "#4CAF50"
+
+- title: "100th Customer"
+  start: "2019-12-01"
+  type: "milestone"
+  metadata: "Major customer milestone"
+
+- title: "International Expansion"
+  start: "2020-06-01"
+  end: "2020-12-31"
+  metadata: "Opened offices in London and Singapore"
+  color: "#FF9800"
+
+- title: "IPO"
+  start: "2023-04-15"
+  type: "milestone"
+  metadata: "Listed on NYSE"
+  color: "#E91E63"

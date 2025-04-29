@@ -1,0 +1,175 @@
+- title: "PhD Journey"
+  start: "2020-09-01"
+  end: "2023-06-15"
+  metadata: "Computer Science PhD at Stanford University"
+  color: "#2196F3"
+
+- title: "First Year Coursework"
+  start: "2020-09-01"
+  end: "2021-06-30"
+  metadata: "Core PhD courses and seminars"
+  color: "#2196F3"
+
+- title: "Teaching Assistant - Intro to AI"
+  start: "2020-09-15"
+  end: "2020-12-15"
+  metadata: "First semester TA position"
+  color: "#4CAF50"
+
+- title: "First Research Paper Submission"
+  start: "2021-02-01"
+  type: "milestone"
+  metadata: "Submitted to ACM Conference"
+  color: "#2196F3"
+
+- title: "Paper Acceptance"
+  start: "2021-03-15"
+  type: "milestone"
+  metadata: "Paper accepted at ACM Conference on AI"
+  color: "#2196F3"
+
+- title: "Qualification Exam Preparation"
+  start: "2021-09-01"
+  end: "2021-12-14"
+  metadata: "Preparing for PhD quals"
+  color: "#2196F3"
+
+- title: "PhD Qualification Exam"
+  start: "2021-12-15"
+  type: "milestone"
+  metadata: "Passed with distinction"
+  color: "#2196F3"
+
+- title: "Thesis Research Phase"
+  start: "2022-01-10"
+  end: "2023-04-30"
+  metadata: "Primary research period on AI Ethics"
+  color: "#2196F3"
+
+- title: "Google Research Fellowship"
+  start: "2022-05-01"
+  end: "2022-12-31"
+  metadata: "AI Research Fellowship"
+  color: "#4CAF50"
+
+- title: "Conference Presentations"
+  start: "2022-06-15"
+  end: "2022-06-20"
+  metadata: "Presented at three major conferences"
+  color: "#2196F3"
+
+- title: "Thesis Writing Period"
+  start: "2023-01-10"
+  end: "2023-05-01"
+  metadata: "Writing and finalizing dissertation"
+  color: "#2196F3"
+
+- title: "Thesis Submission"
+  start: "2023-05-01"
+  type: "milestone"
+  metadata: "Submitted final dissertation draft"
+  color: "#2196F3"
+
+- title: "Dissertation Defense Preparation"
+  start: "2023-05-02"
+  end: "2023-05-19"
+  metadata: "Preparing for defense presentation"
+  color: "#2196F3"
+
+- title: "PhD Dissertation Defense"
+  start: "2023-05-20"
+  type: "milestone"
+  metadata: "Successfully defended thesis"
+  color: "#2196F3"
+
+- title: "Final Thesis Revisions"
+  start: "2023-05-21"
+  end: "2023-06-01"
+  metadata: "Post-defense dissertation updates"
+  color: "#2196F3"
+
+- title: "PhD Graduation"
+  start: "2023-06-15"
+  type: "milestone"
+  metadata: "Officially Dr.!"
+  color: "#2196F3"
+
+# Personal Life Events During PhD
+
+- title: "Met Partner"
+  start: "2021-06-10"
+  life_event: true
+  metadata: "First date at Golden Gate Park"
+  color: "#E91E63"
+
+- title: "Dating Period"
+  start: "2021-06-10"
+  end: "2022-02-13"
+  metadata: "Building relationship"
+  color: "#E91E63"
+
+- title: "Engagement"
+  start: "2022-02-14"
+  life_event: true
+  metadata: "Proposed at Monterey Bay"
+  color: "#E91E63"
+
+- title: "Wedding Planning"
+  start: "2022-02-15"
+  end: "2022-09-02"
+  metadata: "Preparing for wedding"
+  color: "#E91E63"
+
+- title: "Wedding"
+  start: "2022-09-03"
+  life_event: true
+  metadata: "Ceremony at Carmel Valley"
+  color: "#E91E63"
+
+- title: "Honeymoon"
+  start: "2022-09-10"
+  end: "2022-09-24"
+  metadata: "Two weeks in Greece"
+  color: "#E91E63"
+
+- title: "House Hunting"
+  start: "2023-06-20"
+  end: "2023-07-31"
+  metadata: "Searching for first home"
+  color: "#4CAF50"
+
+- title: "Home Purchase"
+  start: "2023-08-01"
+  life_event: true
+  metadata: "Bought house in Mountain View"
+  color: "#4CAF50"
+
+- title: "Pregnancy Journey"
+  start: "2023-10-15"
+  end: "2024-05-15"
+  metadata: "Expecting first child"
+  color: "#FF9800"
+
+- title: "First Trimester"
+  start: "2023-10-15"
+  end: "2024-01-15"
+  metadata: "Early pregnancy phase"
+  color: "#FF9800"
+
+- title: "Second Trimester"
+  start: "2024-01-16"
+  end: "2024-04-15"
+  metadata: "Middle pregnancy phase"
+  color: "#FF9800"
+
+- title: "Baby Shower"
+  start: "2024-04-10"
+  life_event: true
+  metadata: "Celebration with family and friends"
+  color: "#FF9800"
+
+- title: "Due Date"
+  start: "2024-05-15"
+  type: "milestone"
+  metadata: "Expected arrival of baby"
+  color: "#FF9800"

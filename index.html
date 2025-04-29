@@ -4,29 +4,67 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Interactive Timeline</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div id="app">
-    <header>
-      <h1>Interactive Timeline</h1>
+  <div id="app" class="ui container">
+    <header class="ui segment">
+      <h1 class="ui header">Interactive Timeline</h1>
     </header>
-    <section id="form-container">
-      <form id="event-form">
-        <input type="text" id="title" placeholder="Title" required />
-        <input type="date" id="start-date" required />
-        <input type="date" id="end-date" required />
-        <input type="color" id="color" value="#1f77b4" />
-        <input type="text" id="metadata" placeholder="Metadata" />
-        <button type="submit">Add Event</button>
+    <section id="form-container" class="ui segment">
+      <form id="event-form" class="ui form">
+        <div class="three fields">
+          <div class="field">
+            <label for="title">Title</label>
+            <input type="text" id="title" placeholder="Title" required>
+          </div>
+          <div class="field">
+            <label for="start-date">Start Date</label>
+            <input type="date" id="start-date" required>
+          </div>
+          <div class="field">
+            <label for="end-date">End Date</label>
+            <input type="date" id="end-date" required>
+          </div>
+        </div>
+        <div class="three fields">
+          <div class="field">
+            <label for="event-type">Type</label>
+            <select id="event-type" class="ui dropdown">
+              <option value="range">Range Event</option>
+              <option value="life">Life Event</option>
+              <option value="milestone">Milestone</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="color">Color</label>
+            <input type="color" id="color" value="#1f77b4">
+          </div>
+          <div class="field">
+            <label for="metadata">Metadata</label>
+            <input type="text" id="metadata" placeholder="Metadata">
+          </div>
+        </div>
+        <button type="submit" class="ui primary button">Add Event</button>
       </form>
+      <div id="yaml-controls" class="ui segment">
+        <div class="ui two fluid buttons">
+          <button type="button" id="import-btn" class="ui basic button">Import YAML</button>
+          <button type="button" id="export-yaml" class="ui basic button">Export YAML</button>
+        </div>
+        <input type="file" id="import-file" accept=".yaml,.yml" hidden>
+      </div>
     </section>
-    <section id="timeline-container">
+    <section id="timeline-container" class="ui segment">
       <div id="timeline"></div>
-      <div id="tooltip" class="tooltip" style="display: none;"></div>
+      <div id="tooltip" class="tooltip"></div>
     </section>
   </div>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.js"></script>
   <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
