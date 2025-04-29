@@ -1,0 +1,153 @@
+events:
+  - id: "1"
+    title: "PhD Journey"
+    categoryId: "academic"
+    startDate: "2020-09-01T00:00:00.000Z"
+    endDate: "2023-06-15T00:00:00.000Z"
+    color: "#2196F3"
+    isImportant: true
+    row: 0
+
+  - id: "2"
+    title: "First Year Coursework"
+    categoryId: "academic"
+    startDate: "2020-09-01T00:00:00.000Z"
+    endDate: "2021-06-30T00:00:00.000Z"
+    color: "#2196F3"
+    row: 1
+
+  - id: "3"
+    title: "Teaching Assistant - Intro to AI"
+    categoryId: "professional"
+    startDate: "2020-09-15T00:00:00.000Z"
+    endDate: "2020-12-15T00:00:00.000Z"
+    color: "#4CAF50"
+    row: 0
+
+  - id: "4"
+    title: "First Research Paper Submission"
+    categoryId: "academic"
+    startDate: "2021-02-01T00:00:00.000Z"
+    endDate: "2021-02-01T00:00:00.000Z"
+    color: "#2196F3"
+    isImportant: true
+    row: 1
+
+  - id: "5"
+    title: "PhD Qualification Exam"
+    categoryId: "academic"
+    startDate: "2021-12-15T00:00:00.000Z"
+    endDate: "2021-12-15T00:00:00.000Z"
+    color: "#2196F3"
+    isImportant: true
+    row: 0
+
+  - id: "6"
+    title: "Met Partner"
+    categoryId: "personal"
+    startDate: "2021-06-10T00:00:00.000Z"
+    endDate: "2021-06-10T00:00:00.000Z"
+    color: "#E91E63"
+    isImportant: true
+    row: 1
+
+  - id: "7"
+    title: "Google Research Fellowship"
+    categoryId: "professional"
+    startDate: "2022-05-01T00:00:00.000Z"
+    endDate: "2022-12-31T00:00:00.000Z"
+    color: "#4CAF50"
+    isImportant: true
+    row: 0
+
+  - id: "8"
+    title: "Engagement"
+    categoryId: "personal"
+    startDate: "2022-02-14T00:00:00.000Z"
+    endDate: "2022-02-14T00:00:00.000Z"
+    color: "#E91E63"
+    isImportant: true
+    row: 1
+
+  - id: "9"
+    title: "Wedding"
+    categoryId: "personal"
+    startDate: "2022-09-03T00:00:00.000Z"
+    endDate: "2022-09-03T00:00:00.000Z"
+    color: "#E91E63"
+    isImportant: true
+    row: 0
+
+  - id: "10"
+    title: "Honeymoon"
+    categoryId: "personal"
+    startDate: "2022-09-10T00:00:00.000Z"
+    endDate: "2022-09-24T00:00:00.000Z"
+    color: "#E91E63"
+    row: 1
+
+  - id: "11"
+    title: "PhD Dissertation Defense"
+    categoryId: "academic"
+    startDate: "2023-05-20T00:00:00.000Z"
+    endDate: "2023-05-20T00:00:00.000Z"
+    color: "#2196F3"
+    isImportant: true
+    row: 0
+
+  - id: "12"
+    title: "PhD Graduation"
+    categoryId: "academic"
+    startDate: "2023-06-15T00:00:00.000Z"
+    endDate: "2023-06-15T00:00:00.000Z"
+    color: "#2196F3"
+    isImportant: true
+    row: 1
+
+  - id: "13"
+    title: "Home Purchase"
+    categoryId: "personal"
+    startDate: "2023-08-01T00:00:00.000Z"
+    endDate: "2023-08-01T00:00:00.000Z"
+    color: "#4CAF50"
+    isImportant: true
+    row: 0
+
+  - id: "14"
+    title: "Pregnancy Journey"
+    categoryId: "family"
+    startDate: "2023-10-15T00:00:00.000Z"
+    endDate: "2024-05-15T00:00:00.000Z"
+    color: "#FF9800"
+    isImportant: true
+    row: 1
+
+  - id: "15"
+    title: "Baby Shower"
+    categoryId: "family"
+    startDate: "2024-04-10T00:00:00.000Z"
+    endDate: "2024-04-10T00:00:00.000Z"
+    color: "#FF9800"
+    row: 0
+
+categories:
+  - id: "academic"
+    name: "Academic Milestones"
+    color: "#2196F3"
+  
+  - id: "professional"
+    name: "Professional Development"
+    color: "#4CAF50"
+  
+  - id: "personal"
+    name: "Personal Life"
+    color: "#E91E63"
+  
+  - id: "family"
+    name: "Family Events"
+    color: "#FF9800"
+
+timelineConfig:
+  startDate: "2020-09-01T00:00:00.000Z"
+  endDate: "2024-05-15T00:00:00.000Z"
+  today: "2024-04-29T00:00:00.000Z"

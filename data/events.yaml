@@ -1,116 +1,256 @@
 - title: "Graduated College"
   start: "2019-05-15"
-  life_event: true
+  type: "life"
   metadata: "Bachelor's in Computer Science"
   color: "#4CAF50"
+  category: "academic"
+  location:
+    city: "Boston"
+    country: "United States"
 
 - title: "First Job"
   start: "2019-07-01"
-  life_event: true
+  type: "life"
   metadata: "Software Engineer at TechCorp"
   color: "#2196F3"
+  category: "career"
+  location:
+    city: "New York"
+    country: "United States"
 
 - title: "Moved to San Francisco"
   start: "2020-02-15"
-  life_event: true
+  type: "life"
   metadata: "Relocated for new opportunity"
+  category: "family"
+  location:
+    city: "San Francisco"
+    country: "United States"
 
 - title: "Got Married"
   start: "2021-06-25"
-  life_event: true
+  type: "life"
   metadata: "Wedding ceremony in Napa Valley"
   color: "#E91E63"
+  category: "family"
+  location:
+    city: "Napa Valley"
+    country: "United States"
 
 - title: "Bought First House"
   start: "2022-03-10"
-  life_event: true
+  type: "life"
   metadata: "Home ownership milestone"
   color: "#9C27B0"
+  category: "family"
+  location:
+    city: "San Francisco"
+    country: "United States"
 
 - title: "Had First Child"
   start: "2023-01-15"
-  life_event: true
+  type: "life"
   metadata: "Welcome baby Emma!"
   color: "#FF9800"
+  category: "family"
+  location:
+    city: "San Francisco"
+    country: "United States"
 
-- title: "Initial Research"
+- id: "job-techcorp"
+  title: "Software Engineer at TechCorp"
+  start: "2021-01-01"
+  end: "2021-08-15"
+  metadata: "First major product development project"
+  color: "#3F51B5"
+  category: "career"
+  type: "range"
+  isParent: true
+  row: 0
+  isImportant: true
+  location:
+    city: "San Francisco"
+    country: "United States"
+
+- id: "research-phase"
+  title: "Initial Research"
   start: "2021-01-01"
   end: "2021-02-28"
   metadata: "Market research and competitor analysis"
   color: "#2196F3"
+  category: "career"
+  parentId: "job-techcorp"
+  row: 1
+  location:
+    city: "San Francisco"
+    country: "United States"
 
-- title: "Design Sprint"
+- id: "design-sprint"
+  title: "Design Sprint"
   start: "2021-03-15"
   end: "2021-03-19"
   metadata: "Product design workshop"
   color: "#9C27B0"
+  category: "career"
+  parentId: "job-techcorp"
+  row: 1
+  location:
+    city: "San Francisco"
+    country: "United States"
 
-- title: "MVP Development"
+- id: "mvp-dev"
+  title: "MVP Development"
   start: "2021-04-01"
   end: "2021-06-30"
   metadata: "Building minimum viable product"
   color: "#4CAF50"
+  category: "career"
+  parentId: "job-techcorp"
+  row: 1
+  location:
+    city: "San Francisco"
+    country: "United States"
 
-- title: "Alpha Testing"
+- id: "alpha-testing"
+  title: "Alpha Testing"
   start: "2021-07-01"
   end: "2021-08-15"
   metadata: "Internal testing phase"
   color: "#FF9800"
+  category: "career"
+  parentId: "job-techcorp"
+  row: 1
+  location:
+    city: "San Francisco"
+    country: "United States"
 
 - title: "Beta Launch"
   start: "2021-09-01"
   type: "milestone"
   metadata: "Public beta release"
   color: "#E91E63"
+  category: "career"
+  location:
+    city: "San Francisco"
+    country: "United States"
 
 - title: "Version 1.0"
   start: "2021-12-01"
   type: "milestone"
   metadata: "Official product launch"
   color: "#2196F3"
+  category: "career"
+  location:
+    city: "San Francisco"
+    country: "United States"
 
 - title: "Major Update 2.0"
   start: "2022-06-15"
   type: "milestone"
   metadata: "Significant feature release"
   color: "#4CAF50"
+  category: "career"
+  location:
+    city: "San Francisco"
+    country: "United States"
 
 - title: "Company Founded"
   start: "2018-01-01"
   type: "milestone"
   metadata: "Initial founding with 3 employees"
   color: "#2196F3"
+  category: "career"
+  location:
+    city: "New York"
+    country: "United States"
 
 - title: "Seed Funding"
   start: "2018-06-15"
   type: "milestone"
   metadata: "Raised $500K seed round"
   color: "#4CAF50"
+  category: "career"
+  location:
+    city: "New York"
+    country: "United States"
 
 - title: "First Office"
   start: "2018-09-01"
   end: "2020-08-31"
   metadata: "First physical office space"
+  category: "career"
+  location:
+    city: "New York"
+    country: "United States"
 
 - title: "Series A"
   start: "2019-03-20"
   type: "milestone"
   metadata: "Raised $5M Series A"
   color: "#4CAF50"
+  category: "career"
+  location:
+    city: "New York"
+    country: "United States"
 
 - title: "100th Customer"
   start: "2019-12-01"
   type: "milestone"
   metadata: "Major customer milestone"
+  category: "career"
+  location:
+    city: "New York"
+    country: "United States"
 
 - title: "International Expansion"
   start: "2020-06-01"
   end: "2020-12-31"
   metadata: "Opened offices in London and Singapore"
   color: "#FF9800"
+  category: "career"
+  isImportant: true
+  location:
+    city: "London"
+    country: "United Kingdom"
+
+- title: "Singapore Office"
+  start: "2020-07-15"
+  end: "2023-04-15"
+  metadata: "Asia Pacific headquarters"
+  color: "#3F51B5"
+  category: "career"
+  isImportant: true
+  location:
+    city: "Singapore"
+    country: "Singapore"
+
+- title: "Tokyo Partnership"
+  start: "2022-02-01"
+  end: "2022-06-30"
+  metadata: "Strategic partnership with Japanese firm"
+  color: "#009688"
+  category: "career"
+  location:
+    city: "Tokyo"
+    country: "Japan"
+
+- title: "Berlin Conference"
+  start: "2022-09-10"
+  end: "2022-09-15"
+  metadata: "International technology conference"
+  color: "#607D8B"
+  category: "academic"
+  location:
+    city: "Berlin"
+    country: "Germany"
 
 - title: "IPO"
   start: "2023-04-15"
   type: "milestone"
   metadata: "Listed on NYSE"
   color: "#E91E63"
+  category: "career"
+  isImportant: true
+  location:
+    city: "New York"
+    country: "United States"
