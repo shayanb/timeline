@@ -173,7 +173,6 @@ body {
 .life-line {
   position: absolute;
   top: 0;
-  bottom: 0;
   width: 2px;
   z-index: 10;
   background-color: currentColor;
@@ -181,33 +180,61 @@ body {
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
   opacity: 0.7;
   transition: opacity 0.2s ease, width 0.2s ease;
+  height: 100%;
 }
 
 .life-line:hover {
   opacity: 1;
   width: 3px;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
 }
 
-.life-label {
+/* Style specifically for below-chart labels */
+.life-label.below-chart {
   position: absolute;
-  transform: translateX(-50%);
-  font-size: 11px;
-  font-weight: 600;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  transform-origin: top center;
+  padding: 3px 6px;
+  font-size: 10px;
   white-space: nowrap;
-  background-color: white;
-  padding: 1px 4px;
-  border-radius: 4px;
-  border: 1px solid currentColor;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  z-index: 20;
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+  border-top: none;
+  margin-top: 0;
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.3);
+  line-height: 1;
+}
+
+.life-label.below-chart:hover {
+  transform: translateX(-50%) rotate(45deg) translateY(-1px);
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.3);
+  opacity: 1;
 }
 
 .life-events-container {
   pointer-events: none;
+  position: relative;
+  padding-bottom: 0;
+  margin-bottom: 0;
+  overflow: visible;
 }
 
 .life-events-container .life-line {
   pointer-events: auto;
 }
+
+.life-labels-container {
+  background: none;
+  position: relative;
+  z-index: 15;
+  margin-top: -1px;
+  padding-top: 0;
+  overflow: visible;
+}
+
 .milestone-container {
   position: relative;
   display: flex;

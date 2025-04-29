@@ -584,8 +584,8 @@ document.addEventListener('DOMContentLoaded', () => {
     return row;
   }
 
-  // Render world heatmap
-  function renderWorldHeatmap(events) {
+  // Render world heatmap - now accepts time domain like the pie chart
+  function renderWorldHeatmap(events, timeDomain) {
     const container = d3.select('#world-heatmap');
     container.selectAll('*').remove();
     
@@ -623,7 +623,20 @@ document.addEventListener('DOMContentLoaded', () => {
       // Add more cities as needed
     };
     
-    events.forEach(d => {
+    // Apply time domain filtering similar to pie chart
+    const [startDomain, endDomain] = timeDomain || [new Date(0), new Date(Date.now() + 31536000000)]; // Default to all time if not specified
+    
+    // Filter events that are within the current view domain
+    const filtered = events.filter(d => {
+      // For range events, check if they overlap with the domain
+      if (d.type === 'range') {
+        return d.end >= startDomain && d.start <= endDomain;
+      }
+      // For single events (milestone/life), check if they're within the domain
+      return d.start >= startDomain && d.start <= endDomain;
+    });
+    
+    filtered.forEach(d => {
       // Allow for both range events and single-day events
       const hasDuration = d.type === 'range' && d.end > d.start;
       const isSingleEvent = d.type === 'milestone' || d.type === 'life';
@@ -643,11 +656,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (country) {
-          // Calculate duration - either from range or default to 1 day for milestone/life events
+          // Calculate duration - adjusting for visible time range
           let days = 1; // Default for milestone/life events
           
           if (hasDuration) {
-            days = (d.end - d.start) / (1000 * 60 * 60 * 24);
+            // Calculate actual visible duration within the time domain
+            const visibleStart = d.start < startDomain ? startDomain : d.start;
+            const visibleEnd = d.end > endDomain ? endDomain : d.end;
+            days = (visibleEnd - visibleStart) / (1000 * 60 * 60 * 24);
           }
           
           // Add to country totals
@@ -795,14 +811,14 @@ document.addEventListener('DOMContentLoaded', () => {
         mapTooltip.style('opacity', 0);
       });
     
-    // Add a title
+    // Add a title with date range
     svg.append('text')
       .attr('x', width / 2)
       .attr('y', 20)
       .attr('text-anchor', 'middle')
       .style('font-size', '14px')
       .style('font-weight', 'bold')
-      .text('Time Spent by Country');
+      .text(`Time Spent by Country (${formatMonth(startDomain)} - ${formatMonth(endDomain)})`);
     
     // Add a legend
     const legendWidth = 200;
@@ -1226,13 +1242,13 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (event.type === 'life') {
           // Store life events to add them later across all categories
         } else if (event.type === 'milestone') {
-          // Create container for milestone and its actions
+          // Create container for milestone and its actions - positioned at the bottom of the row
           const milestoneContainer = document.createElement('div');
           milestoneContainer.className = 'milestone-container';
           milestoneContainer.style.position = 'absolute';
           milestoneContainer.style.left = `${leftPosition}%`;
-          milestoneContainer.style.top = '50%';
-          milestoneContainer.style.transform = 'translate(-50%, -50%)';
+          milestoneContainer.style.bottom = '5px'; // Position at the bottom of the row
+          milestoneContainer.style.transform = 'translateX(-50%)'; // Only transform X, not Y
           milestoneContainer.style.zIndex = '5';
           milestoneContainer.style.cursor = 'pointer';
           
@@ -1321,10 +1337,11 @@ document.addEventListener('DOMContentLoaded', () => {
       labelsContainer.className = 'life-labels-container';
       labelsContainer.style.display = 'flex';
       labelsContainer.style.position = 'relative';
-      labelsContainer.style.height = '30px';
-      labelsContainer.style.marginTop = '10px';
+      labelsContainer.style.height = '25px'; // Height for angled labels
+      labelsContainer.style.marginTop = '-1px'; // Eliminate gap between timeline and labels
       labelsContainer.style.paddingLeft = '180px'; // Align with timeline content
-      labelsContainer.style.borderTop = '1px dashed #ccc';
+      labelsContainer.style.overflow = 'visible'; // Allow rotated labels to extend outside the container
+      labelsContainer.style.zIndex = '20'; // Higher z-index to ensure visibility
       timelineDiv.parentNode.insertBefore(labelsContainer, timelineDiv.nextSibling);
       
       // Add a click handler on the entire container to handle clicks on labels
@@ -1345,7 +1362,7 @@ document.addEventListener('DOMContentLoaded', () => {
       lifeEvents.forEach(event => {
         const leftPosition = calculatePosition(event.start, startDate, endDate);
         
-        // Create life event line
+        // Create full-height life event line
         const lineDiv = document.createElement('div');
         lineDiv.className = 'life-line';
         lineDiv.style.left = `${leftPosition}%`;
@@ -1353,30 +1370,26 @@ document.addEventListener('DOMContentLoaded', () => {
         lineDiv.style.pointerEvents = 'auto'; // Make clickable
         lifeEventsContainer.appendChild(lineDiv);
         
-        // Life event label BELOW the chart
+        // Life event label BELOW the chart (rotated 45 degrees)
         const labelDiv = document.createElement('div');
         labelDiv.className = 'life-label below-chart';
         labelDiv.textContent = event.title;
         labelDiv.style.left = `${leftPosition}%`;
-        labelDiv.style.color = event.color;
         labelDiv.style.position = 'absolute';
-        labelDiv.style.top = '5px';
-        labelDiv.style.transform = 'translateX(-50%)';
         labelDiv.style.cursor = 'pointer';
         labelDiv.dataset.eventId = event.id; // Store event ID in data attribute
         
-        // Make sure the life event line and label are aligned
-        // Adjust the line position with the same pixel offset as the label
-        const lifeLine = document.querySelector(`.life-line[data-event-id="${event.id}"]`);
-        if (lifeLine) {
-          // Ensure they're using the exact same calculated percentage position
-          lifeLine.style.left = `${leftPosition}%`;
-        }
+        // Give the label the same background color as the line
+        labelDiv.style.backgroundColor = event.color;
+        labelDiv.style.color = 'white'; // White text for better contrast
+        
+        // Make sure the life event line and label are exactly aligned
+        // Add event ID to the line for reference
+        lineDiv.dataset.eventId = event.id;
         
         labelsContainer.appendChild(labelDiv);
         
-        // Click handler
-        lineDiv.dataset.eventId = event.id; // Store event ID in data attribute
+        // Click handler (already added event ID above)
         lineDiv.addEventListener('click', () => {
           editEvent(event);
         });
@@ -1405,8 +1418,8 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
     
-    // Render charts
-    renderWorldHeatmap(events);
+    // Render charts - both should use the current timeline date range
+    renderWorldHeatmap(events, [startDate, endDate]);
     renderNestedPieChart(events, [startDate, endDate]);
     
     // Initialize zoom and pan functionality
