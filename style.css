@@ -1,0 +1,72 @@
+/* Global resets */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: Arial, sans-serif;
+  background: #f5f5f5;
+  color: #333;
+  padding: 20px;
+}
+#app {
+  max-width: 960px;
+  margin: 0 auto;
+}
+header h1 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+#form-container {
+  background: #fff;
+  padding: 15px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+#event-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+#event-form input[type="text"],
+#event-form input[type="date"],
+#event-form input[type="color"] {
+  padding: 6px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 14px;
+}
+#event-form button {
+  padding: 8px 12px;
+  background: #1f77b4;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+#event-form button:hover {
+  background: #155d8b;
+}
+#timeline-container {
+  position: relative;
+  background: #fff;
+  padding: 20px;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: rgba(0,0,0,0.7);
+  color: #fff;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  max-width: 200px;
+  z-index: 10;
+}
+
+/* Timeline SVG */
+svg {
+  overflow: visible;
+}

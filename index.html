@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Interactive Timeline</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>Interactive Timeline</h1>
+    </header>
+    <section id="form-container">
+      <form id="event-form">
+        <input type="text" id="title" placeholder="Title" required />
+        <input type="date" id="start-date" required />
+        <input type="date" id="end-date" required />
+        <input type="color" id="color" value="#1f77b4" />
+        <input type="text" id="metadata" placeholder="Metadata" />
+        <button type="submit">Add Event</button>
+      </form>
+    </section>
+    <section id="timeline-container">
+      <div id="timeline"></div>
+      <div id="tooltip" class="tooltip" style="display: none;"></div>
+    </section>
+  </div>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
