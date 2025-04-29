@@ -20,6 +20,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let events = [];
   let nextId = 1;
+  // Edit mode state
+  let editingId = null;
+  const submitBtn = document.getElementById('submit-btn');
+  const cancelBtn = document.getElementById('cancel-btn');
+  // Cancel edit action
+  cancelBtn.addEventListener('click', () => {
+    editingId = null;
+    form.reset();
+    submitBtn.textContent = 'Add Event';
+    cancelBtn.style.display = 'none';
+    typeInput.dispatchEvent(new Event('change'));
+  });
 
   // Generate a random hex color for new entries
   function randomColor() {
@@ -114,11 +126,49 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('End date must be on or after start date.');
       return;
     }
-    events.push({ title, start, end, type, color, metadata });
+    if (editingId) {
+      // Update existing event
+      const ev = events.find(ev => ev.id === editingId);
+      if (ev) {
+        ev.title = title;
+        ev.start = start;
+        ev.end = end;
+        ev.type = type;
+        ev.color = color;
+        ev.metadata = metadata;
+      }
+    } else {
+      // Add new event
+      events.push({ id: nextId++, title, start, end, type, color, metadata });
+    }
     form.reset();
     colorInput.value = randomColor();
+    submitBtn.textContent = 'Add Event';
+    cancelBtn.style.display = 'none';
     update();
   });
+
+  // Prefill form for editing an event
+  function editEvent(d) {
+    editingId = d.id;
+    titleInput.value = d.title;
+    startInput.value = d.start.toISOString().slice(0,10);
+    // Set event type dropdown (Semantic UI) or native select
+    if (window.$ && $.fn.dropdown) {
+      $('#event-type').dropdown('set selected', d.type);
+    } else {
+      typeInput.value = d.type;
+    }
+    // Trigger change to toggle end-date field
+    typeInput.dispatchEvent(new Event('change'));
+    if (d.type === 'range') {
+      endInput.value = d.end.toISOString().slice(0,10);
+    }
+    colorInput.value = d.color;
+    metadataInput.value = d.metadata;
+    submitBtn.textContent = 'Update Event';
+    cancelBtn.style.display = '';
+  }
 
   // Main rendering function
   function update() {
@@ -166,6 +216,12 @@ document.addEventListener('DOMContentLoaded', () => {
       .attr('class', 'x-axis')
       .attr('transform', `translate(0,${height - margin.bottom})`)
       .call(xAxis);
+    // Rotate and align tick labels to reduce overlap
+    xAxisG.selectAll('text')
+      .style('text-anchor', 'end')
+      .attr('dx', '-.8em')
+      .attr('dy', '.15em')
+      .attr('transform', 'rotate(-45)');
 
     // Range bars with transitions
     const barSel = svg.selectAll('rect.bar')
@@ -198,6 +254,9 @@ document.addEventListener('DOMContentLoaded', () => {
       .on('mouseout', () => tooltip.style('opacity', 0));
     barEnter.transition().duration(600)
       .attr('width', d => Math.max(1, x(d.end) - x(d.start)));
+    // Attach click handler for editing bars
+    svg.selectAll('rect.bar')
+      .on('click', (event, d) => editEvent(d));
     // Update
     barSel.transition().duration(600)
       .attr('x', d => x(d.start))
@@ -215,12 +274,14 @@ document.addEventListener('DOMContentLoaded', () => {
       .text(d => d.title)
       .attr('fill', '#fff')
       .attr('font-size', '12px')
-      .attr('pointer-events', 'none');
+      .attr('pointer-events', 'none')
+      .attr('display', d => (x(d.end) - x(d.start) > 40 ? 'block' : 'none'));
 
     // Life event lines
     svg.selectAll('line.life-line')
       .data(lines)
       .join('line')
+      .on('click', (event, d) => editEvent(d))
       .attr('class', 'life-line')
       .attr('stroke-linecap', 'round')
       .attr('x1', d => x(d.start))
@@ -248,6 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
     svg.selectAll('circle.milestone-marker')
       .data(milestones)
       .join('circle')
+      .on('click', (event, d) => editEvent(d))
       .attr('class', 'milestone-marker')
       .attr('cx', d => x(d.start))
       .attr('cy', axisY)
@@ -281,7 +343,13 @@ document.addEventListener('DOMContentLoaded', () => {
       .extent([[margin.left, margin.top], [width - margin.right, height - margin.bottom]])
       .on('zoom', ({ transform }) => {
         const zx = transform.rescaleX(x);
-        xAxisG.call(d3.axisBottom(zx).ticks(Math.min(events.length * 5, 10)));
+        // Update axis with rotated tick labels
+        xAxisG.call(d3.axisBottom(zx).ticks(Math.min(events.length * 5, 10)))
+          .selectAll('text')
+            .style('text-anchor', 'end')
+            .attr('dx', '-.8em')
+            .attr('dy', '.15em')
+            .attr('transform', 'rotate(-45)');
         svg.selectAll('rect.bar')
           .attr('x', d => zx(d.start))
           .attr('width', d => Math.max(1, zx(d.end) - zx(d.start)));
