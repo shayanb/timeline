@@ -426,6 +426,21 @@ document.addEventListener('DOMContentLoaded', () => {
       isParentCheckbox.checked = !!d.isParent;
     }
     
+    // Add delete button in the edit form
+    if (!document.getElementById('delete-event-btn')) {
+      const deleteEventBtn = document.createElement('button');
+      deleteEventBtn.id = 'delete-event-btn';
+      deleteEventBtn.className = 'ui negative button';
+      deleteEventBtn.textContent = 'Delete Event';
+      deleteEventBtn.style.marginRight = '10px';
+      deleteEventBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        deleteEvent(editingId);
+        hideForm();
+      });
+      submitBtn.parentNode.insertBefore(deleteEventBtn, submitBtn);
+    }
+    
     submitBtn.textContent = 'Update Event';
     
     // Show form for editing
@@ -570,7 +585,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const cityData = {};
     
     events.forEach(d => {
-      if (d.end > d.start) {
+      // Allow for both range events and single-day events
+      const hasDuration = d.type === 'range' && d.end > d.start;
+      const isSingleEvent = d.type === 'milestone' || d.type === 'life';
+      
+      if (hasDuration || isSingleEvent) {
         let country = null;
         let city = null;
         
@@ -585,7 +604,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         if (country) {
-          const days = (d.end - d.start) / (1000 * 60 * 60 * 24);
+          // Calculate duration - either from range or default to 1 day for milestone/life events
+          let days = 1; // Default for milestone/life events
+          
+          if (hasDuration) {
+            days = (d.end - d.start) / (1000 * 60 * 60 * 24);
+          }
           
           // Add to country totals
           countryDurations[country] = (countryDurations[country] || 0) + days;
@@ -1145,6 +1169,7 @@ document.addEventListener('DOMContentLoaded', () => {
           editBtn.title = 'Edit';
           editBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            e.preventDefault();
             editEvent(event);
           });
           actionsDiv.appendChild(editBtn);
@@ -1262,6 +1287,15 @@ document.addEventListener('DOMContentLoaded', () => {
         labelDiv.style.transform = 'translateX(-50%)';
         labelDiv.style.cursor = 'pointer';
         labelDiv.dataset.eventId = event.id; // Store event ID in data attribute
+        
+        // Make sure the life event line and label are aligned
+        // Adjust the line position with the same pixel offset as the label
+        const lifeLine = document.querySelector(`.life-line[data-event-id="${event.id}"]`);
+        if (lifeLine) {
+          // Ensure they're using the exact same calculated percentage position
+          lifeLine.style.left = `${leftPosition}%`;
+        }
+        
         labelsContainer.appendChild(labelDiv);
         
         // Click handler
@@ -1587,6 +1621,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isDraggingStarted = false;
     let lastUpdateTime = 0;
     let accumulatedShift = 0;
+    let animationFrameId = null;
     
     container.addEventListener('mousedown', function(event) {
       const containerRect = container.getBoundingClientRect();
@@ -1608,22 +1643,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('mousemove', function(event) {
       if (!state.isDragging) return;
       
-      const now = Date.now();
-      // Throttle updates for smoother performance (max 60fps)
-      if (now - lastUpdateTime < 16) {
-        // Just accumulate the shift without applying yet
-        const deltaX = event.clientX - dragStartX;
-        dragStartX = event.clientX;
-        
-        // Map the pixel drag distance to a date range shift
-        const containerRect = container.getBoundingClientRect();
-        const effectiveWidth = containerRect.width - 180; // Adjust for category label width
-        const dateRangeMillis = state.currentEndDate.getTime() - state.currentStartDate.getTime();
-        const millisPerPixel = dateRangeMillis / effectiveWidth;
-        
-        // Accumulate shift
-        accumulatedShift += deltaX * millisPerPixel * -1;
-        return;
+      // Cancel any pending animation frame to avoid multiple updates
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
       }
       
       // Process the mouse movement
@@ -1637,24 +1660,27 @@ document.addEventListener('DOMContentLoaded', () => {
       const millisPerPixel = dateRangeMillis / effectiveWidth;
       
       // Add the new shift to any accumulated shift
-      const shift = (deltaX * millisPerPixel * -1) + accumulatedShift;
-      accumulatedShift = 0; // Reset accumulated shift
+      accumulatedShift += deltaX * millisPerPixel * -1;
       
-      // Move dates in the opposite direction of drag
-      const newStartDate = new Date(state.currentStartDate.getTime() + shift);
-      const newEndDate = new Date(state.currentEndDate.getTime() + shift);
+      // Update the display with accumulated shift
+      const newStartDate = new Date(state.currentStartDate.getTime() + accumulatedShift);
+      const newEndDate = new Date(state.currentEndDate.getTime() + accumulatedShift);
       
-      // Update dates and header display
-      state.currentStartDate = newStartDate;
-      state.currentEndDate = newEndDate;
-      currentMonthDisplay.textContent = `${formatMonth(state.currentStartDate)} - ${formatMonth(state.currentEndDate)}`;
+      // Update only the header display immediately for responsiveness
+      currentMonthDisplay.textContent = `${formatMonth(newStartDate)} - ${formatMonth(newEndDate)}`;
       
-      // Only update the view if we've moved a significant amount to avoid flickering
-      if (Math.abs(shift) > 5000) { // 5000ms = 5 seconds threshold
-        update();
+      // Only schedule an actual update after some idle time
+      const now = Date.now();
+      if (now - lastUpdateTime > 200) { // Only update every 200ms max
+        animationFrameId = requestAnimationFrame(() => {
+          // Update the actual timeline
+          state.currentStartDate = newStartDate;
+          state.currentEndDate = newEndDate;
+          accumulatedShift = 0; // Reset accumulated shift
+          update();
+          lastUpdateTime = now;
+        });
       }
-      
-      lastUpdateTime = now;
     });
     
     document.addEventListener('mouseup', function() {
@@ -1663,8 +1689,23 @@ document.addEventListener('DOMContentLoaded', () => {
         isDraggingStarted = false;
         container.style.cursor = 'grab';
         
-        // When released, make sure we do a final update
-        update();
+        // Cancel any pending animation frame
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+          animationFrameId = null;
+        }
+        
+        // Apply any remaining accumulated shift
+        if (accumulatedShift !== 0) {
+          const newStartDate = new Date(state.currentStartDate.getTime() + accumulatedShift);
+          const newEndDate = new Date(state.currentEndDate.getTime() + accumulatedShift);
+          state.currentStartDate = newStartDate;
+          state.currentEndDate = newEndDate;
+          accumulatedShift = 0;
+          
+          // When released, make sure we do a final update
+          update();
+        }
       }
     });
     
