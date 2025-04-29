@@ -5,14 +5,35 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Interactive Timeline</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
-  <div id="app" class="ui container">
-    <header class="ui segment">
-      <h1 class="ui header">Interactive Timeline</h1>
+<body class="bg-gray-50">
+  <div id="app" class="container mx-auto px-4 py-8 max-w-7xl">
+    <header class="bg-white p-4 rounded-md shadow-sm mb-6">
+      <h1 class="text-2xl font-bold text-center text-gray-800">Interactive Timeline</h1>
+      <div id="timeline-header" class="flex justify-center mt-2">
+        <div id="current-month-display" class="text-lg font-medium text-gray-600"></div>
+      </div>
     </header>
-    <section id="form-container" class="ui segment">
+
+    <div class="controls-container bg-white p-4 rounded-md shadow-sm mb-6 flex justify-between items-center">
+      <div class="left-controls">
+        <button id="add-event-btn" class="ui primary button">
+          <i class="plus icon"></i> Add Event
+        </button>
+      </div>
+      <div class="right-controls">
+        <div class="ui two buttons">
+          <button type="button" id="import-btn" class="ui basic button">Import YAML</button>
+          <button type="button" id="export-yaml" class="ui basic button">Export YAML</button>
+        </div>
+        <input type="file" id="import-file" accept=".yaml,.yml" hidden>
+      </div>
+    </div>
+
+    <section id="form-container" class="bg-white p-5 rounded-md shadow-sm mb-6 transition-all">
+      <h3 class="text-lg font-semibold mb-4" id="form-title">Add New Event</h3>
       <form id="event-form" class="ui form">
         <div class="three fields">
           <div class="field">
@@ -28,7 +49,7 @@
             <input type="date" id="end-date" required>
           </div>
         </div>
-        <div class="three fields">
+        <div class="four fields">
           <div class="field">
             <label for="event-type">Type</label>
             <select id="event-type" class="ui dropdown">
@@ -38,33 +59,86 @@
             </select>
           </div>
           <div class="field">
+            <label for="category">Category</label>
+            <select id="category">
+              <option value="">None</option>
+            </select>
+          </div>
+          <div class="field">
             <label for="color">Color</label>
             <input type="color" id="color" value="#1f77b4">
           </div>
           <div class="field">
-            <label for="metadata">Metadata</label>
-            <input type="text" id="metadata" placeholder="Metadata">
+            <label for="important">Important</label>
+            <div class="ui checkbox">
+              <input type="checkbox" id="important">
+              <label for="important"></label>
+            </div>
           </div>
         </div>
-        <button type="submit" id="submit-btn" class="ui primary button">Add Event</button>
-        <button type="button" id="cancel-btn" class="ui button" style="display:none;">Cancel</button>
-      </form>
-      <div id="yaml-controls" class="ui segment">
-        <div class="ui two fluid buttons">
-          <button type="button" id="import-btn" class="ui basic button">Import YAML</button>
-          <button type="button" id="export-yaml" class="ui basic button">Export YAML</button>
+        <div class="three fields">
+          <div class="field">
+            <label for="event-id">Event ID (optional)</label>
+            <input type="text" id="event-id" placeholder="unique-id">
+          </div>
+          <div class="field">
+            <label for="parent-event">Parent Event</label>
+            <select id="parent-event">
+              <option value="">None</option>
+            </select>
+          </div>
+          <div class="field">
+            <div class="ui checkbox" style="margin-top: 28px;">
+              <input type="checkbox" id="is-parent">
+              <label for="is-parent">Is Parent Event</label>
+            </div>
+          </div>
         </div>
-        <input type="file" id="import-file" accept=".yaml,.yml" hidden>
-      </div>
+        <div class="two fields">
+          <div class="field">
+            <label for="city">City</label>
+            <input type="text" id="city" placeholder="City">
+          </div>
+          <div class="field">
+            <label for="country">Country</label>
+            <input type="text" id="country" placeholder="Country">
+          </div>
+        </div>
+        <div class="field">
+          <label for="metadata">Notes</label>
+          <input type="text" id="metadata" placeholder="Additional details">
+        </div>
+        <button type="submit" id="submit-btn" class="ui primary button">Add Event</button>
+        <button type="button" id="cancel-btn" class="ui button">Cancel</button>
+      </form>
     </section>
-    <section id="timeline-container" class="ui segment">
-      <div id="timeline"></div>
+
+    <section id="timeline-container" class="bg-white rounded-md shadow-sm overflow-hidden">
+      <div class="timeline-header bg-gray-50 border-b border-gray-200 h-10 flex items-center">
+        <div class="w-[180px] border-r border-gray-200 px-4">
+          <span class="text-sm font-medium text-gray-700">Categories</span>
+        </div>
+        <div id="timeline-months" class="flex flex-1"></div>
+      </div>
+      <div id="timeline" class="relative"></div>
       <div id="tooltip" class="tooltip"></div>
+    </section>
+
+    <section id="charts-container" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="bg-white p-4 rounded-md shadow-sm">
+        <h3 class="text-lg font-semibold mb-3">Places Heatmap</h3>
+        <div id="world-heatmap"></div>
+      </div>
+      <div class="bg-white p-4 rounded-md shadow-sm">
+        <h3 class="text-lg font-semibold mb-3">Time Spent by Category</h3>
+        <div id="nested-pie-chart"></div>
+      </div>
     </section>
   </div>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.js"></script>
   <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://unpkg.com/topojson-client@3"></script>
   <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
   <script src="script.js"></script>
 </body>

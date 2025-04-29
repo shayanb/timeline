@@ -1,64 +1,354 @@
 /* Global resets */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
-  font-family: Arial, sans-serif;
-  background: #f5f5f5;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   color: #333;
-  padding: 20px;
 }
-#app {
-  max-width: 960px;
-  margin: 0 auto;
+
+/* Form container for add/edit popup */
+#form-container {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
+  transform: translateY(-10px);
 }
-header h1 {
-  text-align: center;
-  margin-bottom: 20px;
+#form-container.open {
+  max-height: 500px;
+  opacity: 1;
+  transform: translateY(0);
 }
+
+/* Timeline main container */
+#timeline {
+  min-height: 200px;
+  position: relative;
+}
+
+/* Category rows */
+.category-row {
+  display: flex;
+  min-height: 56px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.category-label {
+  width: 180px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  background-color: #f9fafb;
+  border-right: 1px solid #e5e7eb;
+  font-weight: 500;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.category-timeline {
+  flex: 1;
+  position: relative;
+  min-height: 56px;
+}
+
+/* Month grid */
+.month-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: #e5e7eb;
+  z-index: 1;
+}
+
+.month-column {
+  border-right: 1px solid #e5e7eb;
+}
+
+.month-label {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: #6b7280;
+  white-space: nowrap;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.year-label {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: #4b5563;
+  white-space: nowrap;
+  font-weight: 600;
+  background-color: rgba(255, 255, 255, 0.5);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+/* Timeline header */
+#timeline-header {
+  margin-bottom: 5px;
+}
+#current-month-display {
+  border-bottom: 2px solid #3b82f6;
+  padding-bottom: 2px;
+  font-weight: 600;
+}
+
+/* Zoom controls */
+.zoom-controls {
+  margin-top: 8px;
+  margin-bottom: 8px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Today marker */
+.today-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: #ef4444;
+  z-index: 10;
+}
+
+/* Events */
+.timeline-event {
+  position: absolute;
+  height: 32px;
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  z-index: 5;
+  min-width: 50px;
+}
+.timeline-event:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Parent event styling */
+.timeline-event.parent-event {
+  height: 12px;
+  opacity: 0.8;
+  border-radius: 2px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+.timeline-event.parent-event:hover {
+  opacity: 1;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Child event styling */
+.timeline-event.child-event {
+  border-left: 3px solid rgba(255, 255, 255, 0.7);
+}
+.event-content {
+  height: 100%;
+  width: 100%;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: white;
+  font-size: 14px;
+  overflow: hidden;
+}
+.event-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Life events and milestones */
+.life-line {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  z-index: 10;
+  background-color: currentColor;
+  cursor: pointer;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+  opacity: 0.7;
+  transition: opacity 0.2s ease, width 0.2s ease;
+  height: 100%;
+}
+
+.life-line:hover {
+  opacity: 1;
+  width: 3px;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Style specifically for below-chart labels */
+.life-label.below-chart {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  transform-origin: top center;
+  padding: 3px 6px;
+  font-size: 10px;
+  white-space: nowrap;
+  z-index: 20;
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+  border-top: none;
+  margin-top: 0;
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.3);
+  line-height: 1;
+}
+
+.life-label.below-chart:hover {
+  transform: translateX(-50%) rotate(45deg) translateY(-1px);
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.3);
+  opacity: 1;
+}
+
+.life-events-container {
+  pointer-events: none;
+  position: relative;
+  padding-bottom: 0;
+  margin-bottom: 0;
+  overflow: visible;
+}
+
+.life-events-container .life-line {
+  pointer-events: auto;
+}
+
+.life-labels-container {
+  background: none;
+  position: relative;
+  z-index: 15;
+  margin-top: -1px;
+  padding-top: 0;
+  overflow: visible;
+}
+
+.milestone-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 15;
+}
+
+.milestone-marker {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  z-index: 5;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.milestone-container:hover .milestone-marker {
+  transform: scale(1.2);
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+}
+
+/* Special styling for milestone event actions */
+.milestone-actions {
+  position: absolute;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  padding: 3px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  top: -25px;
+  left: 0;
+  z-index: 25;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.milestone-container:hover .milestone-actions {
+  display: flex;
+}
+
+/* Tooltip */
 .tooltip {
   position: absolute;
   pointer-events: none;
-  background: rgba(0,0,0,0.8);
+  background: rgba(17, 24, 39, 0.9);
   color: #fff;
   padding: 8px 12px;
   border-radius: 6px;
   font-size: 13px;
-  max-width: 250px;
+  max-width: 300px;
   z-index: 100;
   opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.2s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+.tooltip.show {
+  opacity: 1;
 }
 
-/* Timeline SVG */
-svg {
-  overflow: visible;
+/* Important event indicator */
+.event-important {
+  color: #fcd34d;
+  margin-left: 4px;
+  flex-shrink: 0;
 }
-/* Scrollable timeline container */
-#timeline {
-  width: 100%;
-  max-height: 600px;
-  overflow: auto;
+
+/* Event actions on hover */
+.event-actions {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
-/* Enhanced timeline container */
-#timeline-container {
-  border-radius: 8px;
+.timeline-event:hover .event-actions {
+  opacity: 1;
 }
-#timeline {
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  background: #fafafa;
-}
-/* Interactive elements */
-.bar, .life-line, .milestone-marker {
+.action-button {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background-color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  transition: background-color 0.2s ease;
 }
-/* Axis styling */
-.x-axis path {
-  stroke: #ccc;
+.action-button:hover {
+  background-color: #f3f4f6;
 }
-.x-axis line {
-  stroke: #eee;
+.edit-button {
+  color: #4b5563;
 }
-.x-axis text {
-  fill: #666;
-  font-size: 12px;
+.delete-button {
+  color: #ef4444;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .category-label {
+    width: 120px;
+  }
+  .controls-container {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .right-controls, .left-controls {
+    width: 100%;
+  }
 }
