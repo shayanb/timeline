@@ -4,6 +4,7 @@
   metadata: "Bachelor's in Computer Science"
   color: "#4CAF50"
   category: "academic"
+  categoryBgColor: "rgba(76, 175, 80, 0.08)"
   location:
     city: "Boston"
     country: "United States"
@@ -14,6 +15,7 @@
   metadata: "Software Engineer at TechCorp"
   color: "#2196F3"
   category: "career"
+  categoryBgColor: "rgba(33, 150, 243, 0.08)"
   location:
     city: "New York"
     country: "United States"
@@ -23,6 +25,7 @@
   type: "life"
   metadata: "Relocated for new opportunity"
   category: "family"
+  categoryBgColor: "rgba(233, 30, 99, 0.08)"
   location:
     city: "San Francisco"
     country: "United States"
@@ -264,6 +267,7 @@
   metadata: "Six-month global business development tour"
   color: "#8E44AD"
   category: "travel"
+  categoryBgColor: "rgba(142, 68, 173, 0.08)"
   isParent: true
   isImportant: true
   location:
@@ -331,6 +335,7 @@
   metadata: "Professional development certification"
   color: "#F39C12"
   category: "education"
+  categoryBgColor: "rgba(243, 156, 18, 0.08)"
   isImportant: true
   location:
     city: "San Francisco"
@@ -356,6 +361,7 @@
   metadata: "Major UI/UX redesign project"
   color: "#27AE60"
   category: "project"
+  categoryBgColor: "rgba(39, 174, 96, 0.08)"
   isImportant: true
   location:
     city: "San Francisco"

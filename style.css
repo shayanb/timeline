@@ -102,11 +102,57 @@ body {
 
 /* Zoom controls */
 .zoom-controls {
-  margin-top: 8px;
-  margin-bottom: 8px;
-  display: flex;
-  justify-content: center;
+  position: absolute !important; /* Force positioning */
+  right: 10px !important;
+  top: 10px !important;
+  display: flex !important; /* Force display */
+  flex-direction: column !important;
   gap: 8px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  z-index: 999 !important; /* Ensure it's on top */
+  transition: opacity 0.2s ease;
+  opacity: 0.85;
+  pointer-events: auto !important; /* Ensure clicks work */
+  visibility: visible !important; /* Force visibility */
+}
+
+.zoom-controls:hover {
+  opacity: 1;
+}
+
+/* Ensure zoom buttons are visible and styled nicely */
+.zoom-controls button {
+  margin: 0;
+  padding: 5px 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  color: #4b5563;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.zoom-controls button:hover {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.zoom-controls button.reset-button {
+  font-size: 18px;
+  color: #3b82f6;
 }
 
 /* Today marker */
@@ -192,25 +238,27 @@ body {
 /* Style specifically for below-chart labels */
 .life-label.below-chart {
   position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%) rotate(45deg);
-  transform-origin: top center;
-  padding: 3px 6px;
-  font-size: 10px;
+  top: 10px; /* Move down from the top for better visibility */
+  left: 0;
+  transform: rotate(30deg); /* Rotate 30 degrees as requested */
+  transform-origin: left top;
+  padding: 4px 8px;
+  font-size: 11px;
   white-space: nowrap;
   z-index: 20;
-  border-bottom-left-radius: 4px;
-  border-bottom-right-radius: 4px;
-  border-top: none;
+  border-radius: 4px;
   margin-top: 0;
-  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.3);
-  line-height: 1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+  line-height: 1.2;
+  max-width: none !important; /* Ensure no width limitation */
+  overflow: visible !important; /* Ensure text isn't cut off */
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
 }
 
 .life-label.below-chart:hover {
-  transform: translateX(-50%) rotate(45deg) translateY(-1px);
-  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.3);
+  transform: rotate(30deg) translateY(-2px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
   opacity: 1;
 }
 
@@ -233,6 +281,8 @@ body {
   margin-top: -1px;
   padding-top: 0;
   overflow: visible;
+  min-height: 80px !important; /* Force minimum height */
+  height: auto !important; /* Allow expansion if needed */
 }
 
 .milestone-container {

@@ -1,5 +1,18 @@
 // Interactive Timeline Script
 document.addEventListener('DOMContentLoaded', () => {
+  // Add window resize event listener to reposition labels when window size changes
+  window.addEventListener('resize', () => {
+    // Only update if we have life events
+    if (events.some(event => event.type === 'life')) {
+      // Debounce the resize event to avoid excessive updates
+      if (window.resizeTimeout) {
+        clearTimeout(window.resizeTimeout);
+      }
+      window.resizeTimeout = setTimeout(() => {
+        update();
+      }, 250);
+    }
+  });
   // Polyfill for crypto.randomUUID which might be needed by testing frameworks
   if (!crypto.randomUUID) {
     crypto.randomUUID = function() {
@@ -117,6 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         const data = jsyaml.load(reader.result);
         // Map imported events with properties
+        // Process and convert the imported data
         events = data.map(ev => {
           const type = ev.type || (ev.life_event ? 'life' : 'range');
           const start = new Date(ev.start);
@@ -126,6 +140,35 @@ document.addEventListener('DOMContentLoaded', () => {
           const category = ev.category || ev.parent || null;
           const place = ev.place || null;
           const isImportant = !!ev.isImportant;
+          const categoryBgColor = ev.categoryBgColor || null;
+          
+          // Handle location data in various formats
+          let location = null;
+          
+          if (ev.location) {
+            // Handle object location format
+            if (typeof ev.location === 'object') {
+              location = {
+                city: ev.location.city || '',
+                country: ev.location.country || ''
+              };
+            } 
+            // Handle string location format
+            else if (typeof ev.location === 'string') {
+              location = {
+                city: '',
+                country: ev.location
+              };
+            }
+          }
+          // Fallback to place field (legacy format)
+          else if (place) {
+            location = {
+              city: '',
+              country: place
+            };
+          }
+          
           return { 
             id: nextId++, 
             title: ev.title, 
@@ -135,12 +178,49 @@ document.addEventListener('DOMContentLoaded', () => {
             color, 
             metadata, 
             category, 
-            place, 
-            isImportant 
+            place,  // Keep for backward compatibility
+            location, // Add normalized location data
+            isImportant,
+            categoryBgColor 
           };
         });
         
-        update();
+        // Force reload the world map data to ensure heatmap shows imported locations
+        if (worldGeoJson) {
+          // Explicitly render the world heatmap and nested pie chart with current date range
+          const minTime = d3.min(events, d => d.start);
+          const maxTime = d3.max(events, d => d.end);
+          const startDate = new Date(minTime);
+          startDate.setMonth(startDate.getMonth() - 1);
+          const endDate = new Date(maxTime);
+          endDate.setMonth(endDate.getMonth() + 1);
+          
+          // Reset the timeline state to show the full range of events
+          if (window.timelineState) {
+            window.timelineState.currentStartDate = new Date(startDate);
+            window.timelineState.currentEndDate = new Date(endDate);
+            window.timelineState.originalStartDate = new Date(startDate);
+            window.timelineState.originalEndDate = new Date(endDate);
+            window.timelineState.isZoomed = false;
+          }
+          
+          // First do a general update
+          update();
+          
+          // Then explicitly render the charts again to ensure they display properly
+          setTimeout(() => {
+            // Clear any existing map data
+            d3.select('#world-heatmap').selectAll('*').remove();
+            d3.select('#nested-pie-chart').selectAll('*').remove();
+            
+            // Re-render the charts with the new data
+            renderWorldHeatmap(events, [startDate, endDate]);
+            renderNestedPieChart(events, [startDate, endDate]);
+          }, 100);
+        } else {
+          update();
+        }
+        
         colorInput.value = randomColor();
       } catch (err) {
         alert('Error parsing YAML: ' + err);
@@ -182,6 +262,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (d.color) ev.color = d.color;
       if (d.metadata) ev.metadata = d.metadata;
       if (d.category) ev.category = d.category;
+      if (d.categoryBgColor) ev.categoryBgColor = d.categoryBgColor;
       if (d.isImportant) ev.isImportant = true;
       if (d.isParent) ev.isParent = true;
       
@@ -240,6 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const isImportant = !!ev.isImportant;
         const isParent = !!ev.isParent;
         const row = ev.row !== undefined ? ev.row : null;
+        const categoryBgColor = ev.categoryBgColor || null;
         
         // Handle new location structure
         let location = null;
@@ -278,6 +360,7 @@ document.addEventListener('DOMContentLoaded', () => {
           isImportant,
           isParent,
           row,
+          categoryBgColor,
           parentId: ev.parentId || null // Store the parent ID string for now
         });
       });
@@ -609,18 +692,99 @@ document.addEventListener('DOMContentLoaded', () => {
     // Structure to store city coordinates for dots
     const cities = [];
     
-    // Load world cities data (or we would in a real implementation)
-    // For now, let's create a simplified mapping
+    // Comprehensive list of world cities coordinates
     const cityCoordinates = {
+      // North America
       "New York": [-74.0059, 40.7128],
       "San Francisco": [-122.4194, 37.7749],
       "Napa Valley": [-122.2746, 38.5025],
-      "London": [-0.1278, 51.5074],
-      "Singapore": [103.8198, 1.3521],
-      "Tokyo": [139.6917, 35.6895],
-      "Berlin": [13.4050, 52.5200],
       "Boston": [-71.0589, 42.3601],
-      // Add more cities as needed
+      "Chicago": [-87.6298, 41.8781],
+      "Los Angeles": [-118.2437, 34.0522],
+      "Seattle": [-122.3321, 47.6062],
+      "Miami": [-80.1918, 25.7617],
+      "Washington DC": [-77.0369, 38.9072],
+      "Austin": [-97.7431, 30.2672],
+      "San Diego": [-117.1611, 32.7157],
+      "Portland": [-122.6765, 45.5231],
+      "Denver": [-104.9903, 39.7392],
+      "Las Vegas": [-115.1398, 36.1699],
+      "Vancouver": [-123.1207, 49.2827],
+      "Toronto": [-79.3832, 43.6532],
+      "Montreal": [-73.5674, 45.5017],
+      "Mexico City": [-99.1332, 19.4326],
+      
+      // Europe
+      "London": [-0.1278, 51.5074],
+      "Berlin": [13.4050, 52.5200],
+      "Paris": [2.3522, 48.8566],
+      "Rome": [12.4964, 41.9028],
+      "Madrid": [-3.7038, 40.4168],
+      "Barcelona": [2.1734, 41.3851],
+      "Amsterdam": [4.9041, 52.3676],
+      "Brussels": [4.3517, 50.8503],
+      "Copenhagen": [12.5683, 55.6761],
+      "Stockholm": [18.0686, 59.3293],
+      "Munich": [11.5820, 48.1351],
+      "Vienna": [16.3738, 48.2082],
+      "Prague": [14.4378, 50.0755],
+      "Budapest": [19.0402, 47.4979],
+      "Zurich": [8.5417, 47.3769],
+      "Geneva": [6.1432, 46.2044],
+      "Athens": [23.7275, 37.9838],
+      "Dublin": [-6.2603, 53.3498],
+      "Edinburgh": [-3.1883, 55.9533],
+      "Oslo": [10.7522, 59.9139],
+      "Helsinki": [24.9384, 60.1699],
+      "Warsaw": [21.0122, 52.2297],
+      "Lisbon": [-9.1393, 38.7223],
+      
+      // Asia
+      "Tokyo": [139.6917, 35.6895],
+      "Singapore": [103.8198, 1.3521],
+      "Hong Kong": [114.1694, 22.3193],
+      "Seoul": [126.9780, 37.5665],
+      "Beijing": [116.4074, 39.9042],
+      "Shanghai": [121.4737, 31.2304],
+      "Bangkok": [100.5018, 13.7563],
+      "Kuala Lumpur": [101.6869, 3.1390],
+      "Jakarta": [106.8456, -6.2088],
+      "New Delhi": [77.2090, 28.6139],
+      "Mumbai": [72.8777, 19.0760],
+      "Dubai": [55.2708, 25.2048],
+      "Abu Dhabi": [54.3773, 24.4539],
+      "Taipei": [121.5654, 25.0330],
+      "Manila": [120.9842, 14.5995],
+      "Osaka": [135.5023, 34.6937],
+      "Kyoto": [135.7681, 35.0116],
+      "Ho Chi Minh City": [106.6297, 10.8231],
+      "Bali": [115.1889, -8.4095],
+      
+      // Oceania
+      "Sydney": [151.2093, -33.8688],
+      "Melbourne": [144.9631, -37.8136],
+      "Auckland": [174.7633, -36.8485],
+      "Wellington": [174.7762, -41.2865],
+      "Brisbane": [153.0251, -27.4698],
+      "Perth": [115.8613, -31.9505],
+      
+      // Africa
+      "Cape Town": [18.4241, -33.9249],
+      "Johannesburg": [28.0473, -26.2041],
+      "Cairo": [31.2357, 30.0444],
+      "Marrakech": [-7.9811, 31.6295],
+      "Nairobi": [36.8219, -1.2921],
+      
+      // South America
+      "Rio de Janeiro": [-43.1729, -22.9068],
+      "Buenos Aires": [-58.3816, -34.6037],
+      "São Paulo": [-46.6333, -23.5505],
+      "Lima": [-77.0428, -12.0464],
+      "Santiago": [-70.6693, -33.4489],
+      "Bogotá": [-74.0721, 4.7110],
+      
+      // Default fallback for unknown cities
+      "Unknown": [0, 0]
     };
     
     // Apply time domain filtering similar to pie chart
@@ -646,14 +810,28 @@ document.addEventListener('DOMContentLoaded', () => {
         let city = null;
         
         // Try to get location from the location structure
-        if (d.location && d.location.country) {
-          country = d.location.country;
-          city = d.location.city || '';
-        } 
+        if (d.location) {
+          // Handle object format
+          if (typeof d.location === 'object') {
+            country = d.location.country || null;
+            city = d.location.city || '';
+          } 
+          // Handle string format (legacy or simplified)
+          else if (typeof d.location === 'string') {
+            country = d.location;
+          }
+        }
         // Fallback to legacy place field
         else if (d.place) {
           country = d.place;
         }
+        
+        // Debug logging for location issues (uncomment to debug)
+        // console.log("Event location check:", d.title, 
+        //   "location:", JSON.stringify(d.location), 
+        //   "place:", d.place, 
+        //   "result:", country,
+        //   "city:", city);
         
         if (country) {
           // Calculate duration - adjusting for visible time range
@@ -678,15 +856,28 @@ document.addEventListener('DOMContentLoaded', () => {
             cityData[country][city] = (cityData[country][city] || 0) + days;
             
             // Add city to our list for dots if we have coordinates
-            if (cityCoordinates[city] && !cities.find(c => c.name === city)) {
+            // Use a case-insensitive lookup and handle cities not in our coordinate list
+            const cityKey = city ? Object.keys(cityCoordinates).find(
+              key => key.toLowerCase() === city.toLowerCase()
+            ) : null;
+            
+            const coordinates = cityKey ? cityCoordinates[cityKey] : 
+                               (cityCoordinates[country] ? cityCoordinates[country] : cityCoordinates["Unknown"]);
+                               
+            // Only add if we don't already have this city
+            const existingCity = cities.find(c => c.name === city);
+            if (!existingCity) {
               cities.push({
-                name: city,
-                coordinates: cityCoordinates[city],
+                name: city || country,
+                coordinates: coordinates,
                 days: days,
                 color: d.color || '#3B82F6',
                 event: d.title,
                 country: country
               });
+            } else {
+              // If city exists, accumulate days
+              existingCity.days += days;
             }
           }
         }
@@ -769,29 +960,57 @@ document.addEventListener('DOMContentLoaded', () => {
         d3.select(this).attr('stroke', '#ccc').attr('stroke-width', 0.5);
       });
       
-    // Add city dots
+    // Add city dots with improved sizing and visibility
     svg.selectAll('circle.city-dot')
       .data(cities)
       .join('circle')
       .attr('class', 'city-dot')
-      .attr('cx', d => projection(d.coordinates)[0])
-      .attr('cy', d => projection(d.coordinates)[1])
-      .attr('r', d => Math.min(8, 3 + Math.sqrt(d.days) * 0.5))  // Size based on days, but with reasonable limits
+      .attr('cx', d => {
+        // Handle potential errors with coordinates
+        try {
+          const proj = projection(d.coordinates);
+          return proj ? proj[0] : null;
+        } catch (e) {
+          console.log('Error projecting coordinates for', d.name, d.coordinates);
+          return null;
+        }
+      })
+      .attr('cy', d => {
+        try {
+          const proj = projection(d.coordinates);
+          return proj ? proj[1] : null;
+        } catch (e) {
+          return null;
+        }
+      })
+      .attr('r', d => {
+        // Improved sizing formula that gives better visual scaling
+        const baseSize = 3;
+        const scaleFactor = 0.8;
+        const size = baseSize + Math.sqrt(d.days) * scaleFactor;
+        return Math.min(12, Math.max(4, size)); // Ensure minimum and maximum size
+      })
       .attr('fill', d => d.color)
       .attr('stroke', 'white')
-      .attr('stroke-width', 0.5)
-      .attr('opacity', 0.8)
-      .style('filter', 'drop-shadow(0 0 2px rgba(0,0,0,0.3))')
+      .attr('stroke-width', 1)
+      .attr('opacity', 0.85)
+      .style('filter', 'drop-shadow(0 0 3px rgba(0,0,0,0.4))')
       .style('cursor', 'pointer')
       .on('mouseover', function(event, d) {
+        // Enlarge on hover
         d3.select(this)
-          .attr('r', d => Math.min(10, 4 + Math.sqrt(d.days) * 0.5))
-          .attr('opacity', 1);
+          .attr('r', d => {
+            const currentSize = Math.min(12, Math.max(4, 3 + Math.sqrt(d.days) * 0.8));
+            return currentSize * 1.3; // Increase by 30%
+          })
+          .attr('opacity', 1)
+          .attr('stroke-width', 2);
         
+        // Enhanced tooltip with more details
         let tooltipContent = `
-          <div style="font-weight: bold; margin-bottom: 3px;">${d.name}, ${d.country}</div>
-          <div>${d.event}</div>
-          <div>${Math.round(d.days)} days</div>
+          <div style="font-weight: bold; margin-bottom: 4px; font-size: 14px;">${d.name}, ${d.country}</div>
+          <div style="margin-bottom: 3px;">${d.event}</div>
+          <div style="font-weight: 500;">${Math.round(d.days)} days</div>
         `;
         
         mapTooltip.html(tooltipContent)
@@ -806,8 +1025,9 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .on('mouseout', function(event, d) {
         d3.select(this)
-          .attr('r', d => Math.min(8, 3 + Math.sqrt(d.days) * 0.5))
-          .attr('opacity', 0.8);
+          .attr('r', d => Math.min(12, Math.max(4, 3 + Math.sqrt(d.days) * 0.8)))
+          .attr('opacity', 0.85)
+          .attr('stroke-width', 1);
         mapTooltip.style('opacity', 0);
       });
     
@@ -987,11 +1207,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Get date range - either from zoom state or calculate new one
     let startDate, endDate;
     
-    if (window.timelineState && window.timelineState.isZoomed) {
-      // Use the stored zoom state if available
-      startDate = window.timelineState.currentStartDate;
-      endDate = window.timelineState.currentEndDate;
-    } else {
+    // Initialize timeline state if it doesn't exist
+    if (!window.timelineState) {
       // Ensure reasonable padding for initial view
       startDate = new Date(minTime);
       startDate.setMonth(startDate.getMonth() - 1);
@@ -999,19 +1216,33 @@ document.addEventListener('DOMContentLoaded', () => {
       endDate = new Date(maxTime);
       endDate.setMonth(endDate.getMonth() + 1);
       
-      // Initialize timeline state if it doesn't exist
-      if (!window.timelineState) {
-        window.timelineState = {
-          originalStartDate: new Date(startDate),
-          originalEndDate: new Date(endDate),
-          currentStartDate: new Date(startDate),
-          currentEndDate: new Date(endDate),
-          isZooming: false,
-          isDragging: false,
-          zoomControlsAdded: false,
-          isZoomed: false
-        };
-      }
+      window.timelineState = {
+        originalStartDate: new Date(startDate),
+        originalEndDate: new Date(endDate),
+        currentStartDate: new Date(startDate),
+        currentEndDate: new Date(endDate),
+        isZooming: false,
+        isDragging: false,
+        zoomControlsAdded: false,
+        isZoomed: false
+      };
+    } else if (window.timelineState.isZoomed) {
+      // Use the stored zoom state if available and it's marked as zoomed
+      startDate = new Date(window.timelineState.currentStartDate);
+      endDate = new Date(window.timelineState.currentEndDate);
+    } else {
+      // Not zoomed, so calculate a fresh view with padding
+      startDate = new Date(minTime);
+      startDate.setMonth(startDate.getMonth() - 1);
+      
+      endDate = new Date(maxTime);
+      endDate.setMonth(endDate.getMonth() + 1);
+      
+      // Update the timeline state
+      window.timelineState.originalStartDate = new Date(startDate);
+      window.timelineState.originalEndDate = new Date(endDate);
+      window.timelineState.currentStartDate = new Date(startDate);
+      window.timelineState.currentEndDate = new Date(endDate);
     }
     
     // Update category dropdown
@@ -1107,6 +1338,14 @@ document.addEventListener('DOMContentLoaded', () => {
       timelineMonths.appendChild(monthDiv);
     });
     
+    // Collect category background colors from events
+    const categoryColors = {};
+    events.forEach(event => {
+      if (event.category && event.categoryBgColor && !categoryColors[event.category]) {
+        categoryColors[event.category] = event.categoryBgColor;
+      }
+    });
+    
     // Create category rows
     Object.keys(eventsByCategory).forEach((category, categoryIndex) => {
       const rowDiv = document.createElement('div');
@@ -1122,6 +1361,16 @@ document.addEventListener('DOMContentLoaded', () => {
       // Timeline content area
       const timelineArea = document.createElement('div');
       timelineArea.className = 'category-timeline';
+      
+      // Add background color if defined in the events
+      if (categoryColors[category]) {
+        timelineArea.style.backgroundColor = categoryColors[category];
+      } else {
+        // Apply a subtle alternating background for categories without defined colors
+        timelineArea.style.backgroundColor = categoryIndex % 2 === 0 ? 
+          'rgba(249, 250, 251, 0.5)' : 'rgba(243, 244, 246, 0.5)';
+      }
+      
       rowDiv.appendChild(timelineArea);
       
       // Render month separators
@@ -1169,6 +1418,8 @@ document.addEventListener('DOMContentLoaded', () => {
           if (event.isParent) {
             eventDiv.classList.add('parent-event');
             eventDiv.style.top = `${2 + rowOffset}px`; // Position at the top of the row
+            // Store parent ID in dataset for reference
+            eventDiv.dataset.parentId = event.id;
           } else if (event.parent) {
             eventDiv.classList.add('child-event');
           }
@@ -1213,9 +1464,41 @@ document.addEventListener('DOMContentLoaded', () => {
           // We're removing the delete button from the chart as requested
           // and only keeping it in the edit form
           
-          // Click handler for entire event
-          eventDiv.addEventListener('click', () => {
-            editEvent(event);
+          // Click handler for entire event - use mousedown instead of click to avoid conflict with drag
+          eventDiv.addEventListener('mousedown', (e) => {
+            // Store the starting point to determine if this is a click or a drag
+            const startX = e.clientX;
+            const startY = e.clientY;
+            let hasMoved = false;
+            
+            // Create a function to handle the mouse up event
+            const handleMouseUp = (upEvent) => {
+              // Calculate distance moved
+              const deltaX = Math.abs(upEvent.clientX - startX);
+              const deltaY = Math.abs(upEvent.clientY - startY);
+              
+              // Only process as a click if it was a small movement
+              if (!hasMoved && deltaX < 5 && deltaY < 5) {
+                // This is a click, so edit the event
+                editEvent(d); // Use the event data "d" instead of the DOM event "event"
+              }
+              
+              // Clean up event listeners
+              document.removeEventListener('mousemove', handleMouseMove);
+              document.removeEventListener('mouseup', handleMouseUp);
+            };
+            
+            // Function to detect movement
+            const handleMouseMove = () => {
+              hasMoved = true;
+            };
+            
+            // Listen for mouse move and up events
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+            
+            // Prevent default to avoid text selection, etc.
+            e.preventDefault();
           });
           
           // Tooltip on hover
@@ -1251,11 +1534,13 @@ document.addEventListener('DOMContentLoaded', () => {
           milestoneContainer.style.transform = 'translateX(-50%)'; // Only transform X, not Y
           milestoneContainer.style.zIndex = '5';
           milestoneContainer.style.cursor = 'pointer';
+          milestoneContainer.style.display = 'flex'; // Force display flex
           
           // Create the milestone marker
           const markerDiv = document.createElement('div');
           markerDiv.className = 'milestone-marker';
           markerDiv.style.backgroundColor = event.color;
+          markerDiv.style.display = 'block'; // Force display block
           milestoneContainer.appendChild(markerDiv);
           
           // Create action buttons container
@@ -1281,9 +1566,41 @@ document.addEventListener('DOMContentLoaded', () => {
           // Add container to timeline
           timelineArea.appendChild(milestoneContainer);
           
-          // Click handler for the milestone
-          milestoneContainer.addEventListener('click', () => {
-            editEvent(event);
+          // Click handler for the milestone - with the same approach as the event click handler
+          milestoneContainer.addEventListener('mousedown', (e) => {
+            // Store the starting point to determine if this is a click or a drag
+            const startX = e.clientX;
+            const startY = e.clientY;
+            let hasMoved = false;
+            
+            // Create a function to handle the mouse up event
+            const handleMouseUp = (upEvent) => {
+              // Calculate distance moved
+              const deltaX = Math.abs(upEvent.clientX - startX);
+              const deltaY = Math.abs(upEvent.clientY - startY);
+              
+              // Only process as a click if it was a small movement
+              if (!hasMoved && deltaX < 5 && deltaY < 5) {
+                // This is a click, so edit the event
+                editEvent(d); // Use the event data "d" instead of the DOM event "event"
+              }
+              
+              // Clean up event listeners
+              document.removeEventListener('mousemove', handleMouseMove);
+              document.removeEventListener('mouseup', handleMouseUp);
+            };
+            
+            // Function to detect movement
+            const handleMouseMove = () => {
+              hasMoved = true;
+            };
+            
+            // Listen for mouse move and up events
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+            
+            // Prevent default to avoid text selection, etc.
+            e.preventDefault();
           });
           
           // Tooltip for milestone
@@ -1337,11 +1654,12 @@ document.addEventListener('DOMContentLoaded', () => {
       labelsContainer.className = 'life-labels-container';
       labelsContainer.style.display = 'flex';
       labelsContainer.style.position = 'relative';
-      labelsContainer.style.height = '25px'; // Height for angled labels
-      labelsContainer.style.marginTop = '-1px'; // Eliminate gap between timeline and labels
+      labelsContainer.style.height = '80px'; // Even taller container to fully accommodate rotated labels
+      labelsContainer.style.marginTop = '5px'; // Add a small gap between timeline and labels
       labelsContainer.style.paddingLeft = '180px'; // Align with timeline content
       labelsContainer.style.overflow = 'visible'; // Allow rotated labels to extend outside the container
       labelsContainer.style.zIndex = '20'; // Higher z-index to ensure visibility
+      labelsContainer.style.width = '100%'; // Ensure the container spans the full width
       timelineDiv.parentNode.insertBefore(labelsContainer, timelineDiv.nextSibling);
       
       // Add a click handler on the entire container to handle clicks on labels
@@ -1374,7 +1692,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const labelDiv = document.createElement('div');
         labelDiv.className = 'life-label below-chart';
         labelDiv.textContent = event.title;
-        labelDiv.style.left = `${leftPosition}%`;
         labelDiv.style.position = 'absolute';
         labelDiv.style.cursor = 'pointer';
         labelDiv.dataset.eventId = event.id; // Store event ID in data attribute
@@ -1387,11 +1704,67 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add event ID to the line for reference
         lineDiv.dataset.eventId = event.id;
         
+        // First add the label to the DOM to make sure it's measured correctly
         labelsContainer.appendChild(labelDiv);
         
-        // Click handler (already added event ID above)
-        lineDiv.addEventListener('click', () => {
-          editEvent(event);
+        // Then position it properly after a brief delay to ensure the DOM is updated
+        setTimeout(() => {
+          // Get the offsetLeft of the corresponding life-line to align them exactly
+          const lineRect = lineDiv.getBoundingClientRect();
+          const containerRect = labelsContainer.getBoundingClientRect();
+          
+          // Calculate the position to be aligned with the life-line
+          // Adjust for the category label width and position it centered on the life-line
+          const labelRect = labelDiv.getBoundingClientRect();
+          const labelWidth = labelRect.width;
+          const lineWidth = lineRect.width;
+          
+          // Position the label top-left corner directly under the center of the life-line
+          // For rotated labels, we want to position differently than for centered labels
+          const lineCenter = (lineRect.left - containerRect.left) + (lineWidth / 2);
+          const labelPosition = lineCenter; // Position top-left at line center
+          
+          // Update the label position - ensure it's not positioned off-screen to the left
+          labelDiv.style.left = `${Math.max(0, labelPosition)}px`;
+        }, 0);
+        
+        // Click handler for life lines - with the same approach as other click handlers
+        lineDiv.addEventListener('mousedown', (e) => {
+          // Store the starting point to determine if this is a click or a drag
+          const startX = e.clientX;
+          const startY = e.clientY;
+          let hasMoved = false;
+          
+          // Create a function to handle the mouse up event
+          const handleMouseUp = (upEvent) => {
+            // Calculate distance moved
+            const deltaX = Math.abs(upEvent.clientX - startX);
+            const deltaY = Math.abs(upEvent.clientY - startY);
+            
+            // Only process as a click if it was a small movement
+            if (!hasMoved && deltaX < 5 && deltaY < 5) {
+              // This is a click, so edit the event
+              editEvent(event); // Use the event data
+            }
+            
+            // Clean up event listeners
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+          };
+          
+          // Function to detect movement
+          const handleMouseMove = () => {
+            hasMoved = true;
+          };
+          
+          // Listen for mouse move and up events
+          document.addEventListener('mousemove', handleMouseMove);
+          document.addEventListener('mouseup', handleMouseUp);
+          
+          // Stop propagation to prevent timeline drag when clicking on line
+          e.stopPropagation();
+          // Prevent default to avoid text selection, etc.
+          e.preventDefault();
         });
         
         // Tooltip
@@ -1426,9 +1799,95 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeZoomAndPan(timelineDiv, startDate, endDate);
   }
   
-  // Easing function for smoother animations
+  // Easing functions for smoother animations
   function easeInOutCubic(t) {
     return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  }
+  
+  function easeOutQuint(t) {
+    return 1 - Math.pow(1 - t, 5);
+  }
+  
+  function easeInOutQuint(t) {
+    return t < 0.5 ? 16 * t * t * t * t * t : 1 - Math.pow(-2 * t + 2, 5) / 2;
+  }
+  
+  // Enhanced animation system using requestAnimationFrame with direct DOM manipulation for smoother animations
+  class SmoothAnimation {
+    constructor(options) {
+      this.options = Object.assign({
+        duration: 600,          // Animation duration in ms
+        easing: easeInOutQuint, // Default easing function
+        onUpdate: null,         // Update callback
+        onComplete: null,       // Complete callback
+        autoStart: true,        // Auto start the animation
+        useRAF: true,           // Use requestAnimationFrame
+        targetFPS: 60,          // Target frames per second
+      }, options);
+      
+      this.startTime = null;
+      this.lastFrameTime = 0;
+      this.animationFrameId = null;
+      this.isRunning = false;
+      this.frameDelay = 1000 / this.options.targetFPS;
+    }
+    
+    start() {
+      if (this.isRunning) return;
+      
+      this.isRunning = true;
+      this.startTime = performance.now();
+      this.lastFrameTime = this.startTime;
+      this.tick();
+      return this;
+    }
+    
+    stop() {
+      if (this.animationFrameId) {
+        if (this.options.useRAF) {
+          cancelAnimationFrame(this.animationFrameId);
+        } else {
+          clearTimeout(this.animationFrameId);
+        }
+        this.animationFrameId = null;
+      }
+      this.isRunning = false;
+      return this;
+    }
+    
+    tick() {
+      const now = performance.now();
+      const elapsed = now - this.startTime;
+      const progress = Math.min(elapsed / this.options.duration, 1);
+      const easedProgress = this.options.easing(progress);
+      
+      // Throttle updates based on targetFPS to prevent too many DOM changes
+      const timeSinceLastFrame = now - this.lastFrameTime;
+      const shouldUpdateFrame = timeSinceLastFrame >= this.frameDelay || progress >= 1;
+      
+      if (shouldUpdateFrame) {
+        if (this.options.onUpdate) {
+          this.options.onUpdate(easedProgress, progress);
+        }
+        this.lastFrameTime = now;
+      }
+      
+      if (progress < 1) {
+        // Schedule next frame
+        if (this.options.useRAF) {
+          this.animationFrameId = requestAnimationFrame(this.tick.bind(this));
+        } else {
+          // Use setTimeout as a fallback with consistent timing
+          const nextFrameDelay = Math.max(0, this.frameDelay - (performance.now() - now));
+          this.animationFrameId = setTimeout(this.tick.bind(this), nextFrameDelay);
+        }
+      } else {
+        this.isRunning = false;
+        if (this.options.onComplete) {
+          this.options.onComplete();
+        }
+      }
+    }
   }
   
   // Initialize zoom and pan functionality
@@ -1463,42 +1922,55 @@ document.addEventListener('DOMContentLoaded', () => {
         existingControls.remove();
       }
       
-      // Add zoom controls
+      // CRITICAL FIX: Add zoom controls directly to the DOM, not depending on container
       const zoomControlsContainer = document.createElement('div');
       zoomControlsContainer.id = 'timeline-zoom-controls'; // Add ID for easier selection
       zoomControlsContainer.className = 'zoom-controls';
+      
+      // Force inline styles to ensure visibility
       zoomControlsContainer.style.display = 'flex';
-      zoomControlsContainer.style.justifyContent = 'center';
-      zoomControlsContainer.style.marginTop = '10px';
-      zoomControlsContainer.style.gap = '10px';
-      container.parentNode.appendChild(zoomControlsContainer);
+      zoomControlsContainer.style.flexDirection = 'column';
+      zoomControlsContainer.style.position = 'fixed'; // Use fixed instead of absolute
+      zoomControlsContainer.style.top = '100px';
+      zoomControlsContainer.style.right = '20px';
+      zoomControlsContainer.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+      zoomControlsContainer.style.padding = '10px';
+      zoomControlsContainer.style.borderRadius = '8px';
+      zoomControlsContainer.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.2)';
+      zoomControlsContainer.style.zIndex = '9999'; // Very high z-index
+      
+      // Add directly to the document body instead of the container
+      document.body.appendChild(zoomControlsContainer);
       
       // Mark that controls have been added
       state.zoomControlsAdded = true;
       
       // Zoom in button
       const zoomInBtn = document.createElement('button');
-      zoomInBtn.className = 'ui mini button';
-      zoomInBtn.innerHTML = '<i class="zoom-in">+</i>';
+      zoomInBtn.className = 'zoom-button';
+      zoomInBtn.innerHTML = '+';
+      zoomInBtn.title = 'Zoom In';
       zoomInBtn.addEventListener('click', () => handleZoom(0.7));
       zoomControlsContainer.appendChild(zoomInBtn);
       
       // Zoom out button
       const zoomOutBtn = document.createElement('button');
-      zoomOutBtn.className = 'ui mini button';
-      zoomOutBtn.innerHTML = '<i class="zoom-out">-</i>';
+      zoomOutBtn.className = 'zoom-button';
+      zoomOutBtn.innerHTML = '−'; // Using proper minus sign
+      zoomOutBtn.title = 'Zoom Out';
       zoomOutBtn.addEventListener('click', () => handleZoom(1.4));
       zoomControlsContainer.appendChild(zoomOutBtn);
       
       // Reset button
       const resetBtn = document.createElement('button');
-      resetBtn.className = 'ui mini button';
-      resetBtn.textContent = 'Reset View';
+      resetBtn.className = 'zoom-button reset-button';
+      resetBtn.innerHTML = '↺'; // Reset icon
+      resetBtn.title = 'Reset View';
       resetBtn.addEventListener('click', resetView);
       zoomControlsContainer.appendChild(resetBtn);
     }
     
-    // Handle manual zoom with buttons
+    // Handle manual zoom with buttons using the SmoothAnimation system
     function handleZoom(factor) {
       // Don't handle if already zooming
       if (state.isZooming) return;
@@ -1515,104 +1987,125 @@ document.addEventListener('DOMContentLoaded', () => {
       const newStart = new Date(midPoint.getTime() - newRange / 2);
       const newEnd = new Date(midPoint.getTime() + newRange / 2);
       
+      // Make sure to update the global timeline state for persistence
+      if (window.timelineState) {
+        window.timelineState.isZoomed = true;
+      }
+      
       // Store old dates for animation
       const oldStart = new Date(state.currentStartDate);
       const oldEnd = new Date(state.currentEndDate);
       
-      // Set up animation
-      const totalFrames = 15;
-      let currentFrame = 0;
-      
-      function animateZoom() {
-        if (currentFrame >= totalFrames) {
+      // Use the new animation system for smooth transition
+      new SmoothAnimation({
+        duration: 700, // Slightly longer for smoother zoom
+        easing: easeInOutQuint,
+        onUpdate: (progress) => {
+          // Calculate interpolated dates
+          const startDiff = newStart.getTime() - oldStart.getTime();
+          const endDiff = newEnd.getTime() - oldEnd.getTime();
+          
+          const interpolatedStart = new Date(oldStart.getTime() + startDiff * progress);
+          const interpolatedEnd = new Date(oldEnd.getTime() + endDiff * progress);
+          
+          // Update state and display
+          state.currentStartDate = interpolatedStart;
+          state.currentEndDate = interpolatedEnd;
+          state.isZoomed = true;
+          
+          // Update the UI - always update the month display
+          currentMonthDisplay.textContent = `${formatMonth(state.currentStartDate)} - ${formatMonth(state.currentEndDate)}`;
+          
+          // Only do full visual updates on certain progress points
+          const updatePoints = [0, 0.25, 0.5, 0.75, 0.9, 1];
+          const nearestPoint = updatePoints.find(point => 
+            Math.abs(progress - point) < 0.05
+          );
+          
+          if (nearestPoint !== undefined) {
+            update();
+          }
+        },
+        onComplete: () => {
           // Final update with exact target dates
           state.currentStartDate = newStart;
           state.currentEndDate = newEnd;
           currentMonthDisplay.textContent = `${formatMonth(state.currentStartDate)} - ${formatMonth(state.currentEndDate)}`;
           update();
           state.isZooming = false;
-          return;
         }
-        
-        // Calculate interpolated dates
-        const progress = easeInOutCubic(currentFrame / totalFrames);
-        const startDiff = newStart.getTime() - oldStart.getTime();
-        const endDiff = newEnd.getTime() - oldEnd.getTime();
-        
-        const interpolatedStart = new Date(oldStart.getTime() + startDiff * progress);
-        const interpolatedEnd = new Date(oldEnd.getTime() + endDiff * progress);
-        
-        // Update state and display
-        state.currentStartDate = interpolatedStart;
-        state.currentEndDate = interpolatedEnd;
-        state.isZoomed = true;
-        
-        // Update the UI
-        currentMonthDisplay.textContent = `${formatMonth(state.currentStartDate)} - ${formatMonth(state.currentEndDate)}`;
-        update();
-        
-        // Next frame
-        currentFrame++;
-        requestAnimationFrame(animateZoom);
-      }
-      
-      // Start animation
-      animateZoom();
+      }).start();
     }
     
-    // Reset to original view
+    // Reset to original view using the SmoothAnimation system
     function resetView() {
       // Don't handle if already zooming
       if (state.isZooming) return;
       state.isZooming = true;
       
-      // Store target (original) dates
-      const newStart = new Date(state.originalStartDate);
-      const newEnd = new Date(state.originalEndDate);
+      // Store target (original) dates from the global timeline state
+      const newStart = window.timelineState ? 
+        new Date(window.timelineState.originalStartDate) : new Date(state.originalStartDate);
+      const newEnd = window.timelineState ? 
+        new Date(window.timelineState.originalEndDate) : new Date(state.originalEndDate);
+        
+      // Clear the zoomed flag
+      if (window.timelineState) {
+        window.timelineState.isZoomed = false;
+      }
       
       // Store current dates for animation
       const oldStart = new Date(state.currentStartDate);
       const oldEnd = new Date(state.currentEndDate);
       
-      // Set up animation
-      const totalFrames = 15;
-      let currentFrame = 0;
-      
-      function animateReset() {
-        if (currentFrame >= totalFrames) {
+      // Use the new animation system for smooth reset
+      new SmoothAnimation({
+        duration: 800, // Slightly longer for more dramatic 'reset' feel
+        easing: easeOutQuint, // Different easing for reset - feels more natural
+        onUpdate: (progress) => {
+          // Calculate interpolated dates
+          const startDiff = newStart.getTime() - oldStart.getTime();
+          const endDiff = newEnd.getTime() - oldEnd.getTime();
+          
+          const interpolatedStart = new Date(oldStart.getTime() + startDiff * progress);
+          const interpolatedEnd = new Date(oldEnd.getTime() + endDiff * progress);
+          
+          // Update state and display
+          state.currentStartDate = interpolatedStart;
+          state.currentEndDate = interpolatedEnd;
+          
+          // Update the UI - always update month display for smooth visual feedback
+          currentMonthDisplay.textContent = `${formatMonth(state.currentStartDate)} - ${formatMonth(state.currentEndDate)}`;
+          
+          // Use strategic update points for better performance
+          const updatePoints = [0, 0.2, 0.4, 0.6, 0.8, 1];
+          const nearestPoint = updatePoints.find(point => 
+            Math.abs(progress - point) < 0.05
+          );
+          
+          if (nearestPoint !== undefined) {
+            update();
+          }
+        },
+        onComplete: () => {
           // Final update with exact target dates
+          // Update the local state
           state.currentStartDate = newStart;
           state.currentEndDate = newEnd;
           state.isZoomed = false;
+          
+          // Update the global timeline state
+          if (window.timelineState) {
+            window.timelineState.currentStartDate = new Date(newStart);
+            window.timelineState.currentEndDate = new Date(newEnd);
+            window.timelineState.isZoomed = false;
+          }
+          
           currentMonthDisplay.textContent = `${formatMonth(state.currentStartDate)} - ${formatMonth(state.currentEndDate)}`;
           update();
           state.isZooming = false;
-          return;
         }
-        
-        // Calculate interpolated dates
-        const progress = easeInOutCubic(currentFrame / totalFrames);
-        const startDiff = newStart.getTime() - oldStart.getTime();
-        const endDiff = newEnd.getTime() - oldEnd.getTime();
-        
-        const interpolatedStart = new Date(oldStart.getTime() + startDiff * progress);
-        const interpolatedEnd = new Date(oldEnd.getTime() + endDiff * progress);
-        
-        // Update state and display
-        state.currentStartDate = interpolatedStart;
-        state.currentEndDate = interpolatedEnd;
-        
-        // Update the UI
-        currentMonthDisplay.textContent = `${formatMonth(state.currentStartDate)} - ${formatMonth(state.currentEndDate)}`;
-        update();
-        
-        // Next frame
-        currentFrame++;
-        requestAnimationFrame(animateReset);
-      }
-      
-      // Start animation
-      animateReset();
+      }).start();
     }
     
     // Update date range and redraw timeline
@@ -1633,7 +2126,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let pendingZoom = null;
     let lastWheelTime = 0;
     
-    // Function to process zoom events
+    // Function to process zoom events using the SmoothAnimation system
     function processZoom(event) {
       if (state.isZooming) return;
       state.isZooming = true;
@@ -1641,7 +2134,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Determine direction and create zoom factor
       const direction = event.deltaY < 0 ? -1 : 1;
       // Use more subtle zoom factor for smoother zooming
-      const factor = direction < 0 ? 0.95 : 1.05;
+      const factor = direction < 0 ? 0.9 : 1.1;  // Slightly more pronounced for better feedback
       
       // Get mouse position for zoom target
       const containerRect = container.getBoundingClientRect();
@@ -1656,7 +2149,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const totalTime = state.currentEndDate.getTime() - state.currentStartDate.getTime();
         const zoomCenterDate = new Date(state.currentStartDate.getTime() + totalTime * mousePosition);
         
-        // Calculate new date range with smoothing
+        // Ensure timeline state knows we're zoomed
+        if (window.timelineState) {
+          window.timelineState.isZoomed = true;
+        }
+        
+        // Calculate new date range
         const newRange = totalTime * factor;
         const newStart = new Date(zoomCenterDate.getTime() - newRange * mousePosition);
         const newEnd = new Date(zoomCenterDate.getTime() + newRange * (1 - mousePosition));
@@ -1668,46 +2166,39 @@ document.addEventListener('DOMContentLoaded', () => {
         // Just update the display immediately for responsiveness
         currentMonthDisplay.textContent = `${formatMonth(newStart)} - ${formatMonth(newEnd)}`;
         
-        // Set up animation with more frames for smoother animation
-        const totalFrames = 20;
-        let currentFrame = 0;
-        
-        // Update document title to help with debugging
-        document.title = `Zooming: ${factor < 1 ? 'In' : 'Out'}`;
-        
-        function animateZoom() {
-          // Calculate interpolated dates using easing for smoother movement
-          const progress = easeInOutCubic(currentFrame / totalFrames);
-          const startDiff = newStart.getTime() - oldStart.getTime();
-          const endDiff = newEnd.getTime() - oldEnd.getTime();
-          
-          const interpolatedStart = new Date(oldStart.getTime() + startDiff * progress);
-          const interpolatedEnd = new Date(oldEnd.getTime() + endDiff * progress);
-          
-          // Update state
-          state.currentStartDate = interpolatedStart;
-          state.currentEndDate = interpolatedEnd;
-          state.isZoomed = true;
-          
-          // Only update the UI on the last frame
-          if (currentFrame === totalFrames - 1) {
+        // Use the smooth animation system
+        new SmoothAnimation({
+          duration: 500, // Shorter for wheel zoom to feel responsive
+          easing: easeInOutQuint,
+          onUpdate: (progress) => {
+            // Calculate interpolated dates
+            const startDiff = newStart.getTime() - oldStart.getTime();
+            const endDiff = newEnd.getTime() - oldEnd.getTime();
+            
+            const interpolatedStart = new Date(oldStart.getTime() + startDiff * progress);
+            const interpolatedEnd = new Date(oldEnd.getTime() + endDiff * progress);
+            
+            // Update state
+            state.currentStartDate = interpolatedStart;
+            state.currentEndDate = interpolatedEnd;
+            state.isZoomed = true;
+            
+            // Always update month display
+            currentMonthDisplay.textContent = `${formatMonth(interpolatedStart)} - ${formatMonth(interpolatedEnd)}`;
+            
+            // Only update the full UI at strategic points
+            if (progress === 0 || progress === 1 || progress >= 0.5) {
+              update();
+            }
+          },
+          onComplete: () => {
+            // Final update
+            state.currentStartDate = newStart;
+            state.currentEndDate = newEnd;
             update();
             state.isZooming = false;
-            document.title = 'Timeline'; // Reset title
-          } else {
-            // Just update the month display for other frames
-            currentMonthDisplay.textContent = `${formatMonth(interpolatedStart)} - ${formatMonth(interpolatedEnd)}`;
           }
-          
-          // Next frame or finish
-          if (currentFrame < totalFrames - 1) {
-            currentFrame++;
-            requestAnimationFrame(animateZoom);
-          }
-        }
-        
-        // Start animation
-        animateZoom();
+        }).start();
       } else {
         state.isZooming = false;
       }
@@ -1753,12 +2244,14 @@ document.addEventListener('DOMContentLoaded', () => {
       processZoom(event);
     }, { passive: false });
     
-    // Handle drag to pan
+    // Handle drag to pan with smooth animation
     let dragStartX = 0;
+    let dragStartTime = 0;
     let isDraggingStarted = false;
-    let lastUpdateTime = 0;
-    let accumulatedShift = 0;
-    let animationFrameId = null;
+    let activeDragAnimation = null;
+    let lastDragVelocity = 0;
+    let lastDragTime = 0;
+    let dragPositions = [];
     
     container.addEventListener('mousedown', function(event) {
       const containerRect = container.getBoundingClientRect();
@@ -1766,11 +2259,18 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Only start dragging if mouse is in the timeline area (not on category labels)
       if (mouseX > 180) {
+        // Stop any active animations
+        if (activeDragAnimation) {
+          activeDragAnimation.stop();
+          activeDragAnimation = null;
+        }
+        
         state.isDragging = true;
         isDraggingStarted = true;
         dragStartX = event.clientX;
+        dragStartTime = performance.now();
+        dragPositions = [{x: dragStartX, time: dragStartTime}];
         container.style.cursor = 'grabbing';
-        accumulatedShift = 0;
         
         // Prevent text selection during drag
         event.preventDefault();
@@ -1780,15 +2280,17 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('mousemove', function(event) {
       if (!state.isDragging) return;
       
-      // Cancel any pending animation frame to avoid multiple updates
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-        animationFrameId = null;
-      }
-      
       // Process the mouse movement
-      const deltaX = event.clientX - dragStartX;
-      dragStartX = event.clientX;
+      const currentX = event.clientX;
+      const currentTime = performance.now();
+      const deltaX = currentX - dragStartX;
+      
+      // Record position for velocity calculation
+      dragPositions.push({x: currentX, time: currentTime});
+      // Keep only the last 5 positions for velocity calculation
+      if (dragPositions.length > 5) {
+        dragPositions.shift();
+      }
       
       // Map the pixel drag distance to a date range shift
       const containerRect = container.getBoundingClientRect();
@@ -1796,57 +2298,250 @@ document.addEventListener('DOMContentLoaded', () => {
       const dateRangeMillis = state.currentEndDate.getTime() - state.currentStartDate.getTime();
       const millisPerPixel = dateRangeMillis / effectiveWidth;
       
-      // Add the new shift to any accumulated shift
-      accumulatedShift += deltaX * millisPerPixel * -1;
+      // Calculate the shift based on the mouse movement
+      const shift = deltaX * millisPerPixel * -1;
       
-      // Update the display with accumulated shift
-      const newStartDate = new Date(state.currentStartDate.getTime() + accumulatedShift);
-      const newEndDate = new Date(state.currentEndDate.getTime() + accumulatedShift);
+      // Update dates based on the shift
+      const newStartDate = new Date(state.currentStartDate.getTime() + shift);
+      const newEndDate = new Date(state.currentEndDate.getTime() + shift);
       
-      // Update only the header display immediately for responsiveness
+      // Store the original state if this is the start of a drag operation
+      if (dragPositions.length <= 1) {
+        // Save the initial dates for this drag operation
+        window.dragInitialState = {
+          startDate: new Date(state.currentStartDate),
+          endDate: new Date(state.currentEndDate),
+          timeStamp: performance.now()
+        };
+      }
+      
+      // Update state directly for real-time responsiveness during drag
+      state.currentStartDate = newStartDate;
+      state.currentEndDate = newEndDate;
+      
+      // Update the header display for responsiveness
       currentMonthDisplay.textContent = `${formatMonth(newStartDate)} - ${formatMonth(newEndDate)}`;
       
-      // Only schedule an actual update after some idle time
-      const now = Date.now();
-      if (now - lastUpdateTime > 200) { // Only update every 200ms max
-        animationFrameId = requestAnimationFrame(() => {
-          // Update the actual timeline
-          state.currentStartDate = newStartDate;
-          state.currentEndDate = newEndDate;
-          accumulatedShift = 0; // Reset accumulated shift
-          update();
-          lastUpdateTime = now;
+      // Update the dragStartX for the next movement
+      dragStartX = currentX;
+      
+      // Important: Store the updated state in the global state object explicitly
+      window.timelineState.currentStartDate = newStartDate;
+      window.timelineState.currentEndDate = newEndDate;
+      
+      // Use direct DOM manipulation for smoother dragging
+      // Instead of full redraws, move elements directly
+      moveTimelineElements(shift);
+      
+      // Less frequent full updates to improve dragging performance
+      const now = performance.now();
+      if (now - lastDragTime > 100) { // Reduced update frequency for smoother dragging
+        requestAnimationFrame(() => {
+          // Only update month separators and events - not the entire chart
+          moveTimelineElements(shift);
+          lastDragTime = now;
         });
       }
     });
     
     document.addEventListener('mouseup', function() {
       if (state.isDragging) {
+        const releaseTime = performance.now();
         state.isDragging = false;
         isDraggingStarted = false;
         container.style.cursor = 'grab';
         
-        // Cancel any pending animation frame
-        if (animationFrameId) {
-          cancelAnimationFrame(animationFrameId);
-          animationFrameId = null;
+        // Important: Ensure the timeline state object is updated
+        if (window.timelineState) {
+          // Mark as zoomed so the current dates will be used
+          window.timelineState.isZoomed = true;
+          
+          // Make sure the timeline state matches our current state
+          window.timelineState.currentStartDate = new Date(state.currentStartDate);
+          window.timelineState.currentEndDate = new Date(state.currentEndDate);
         }
         
-        // Apply any remaining accumulated shift
-        if (accumulatedShift !== 0) {
-          const newStartDate = new Date(state.currentStartDate.getTime() + accumulatedShift);
-          const newEndDate = new Date(state.currentEndDate.getTime() + accumulatedShift);
-          state.currentStartDate = newStartDate;
-          state.currentEndDate = newEndDate;
-          accumulatedShift = 0;
+        // Calculate velocity for momentum effect
+        let velocity = 0;
+        
+        // Use the last few positions to calculate a more accurate velocity
+        if (dragPositions.length >= 2) {
+          // Get the last 5 positions or all if less than 5
+          const positionsToConsider = Math.min(5, dragPositions.length);
+          const recentPositions = dragPositions.slice(-positionsToConsider);
           
-          // When released, make sure we do a final update
-          update();
+          // Calculate the total distance and time
+          const firstPos = recentPositions[0];
+          const lastPos = recentPositions[recentPositions.length - 1];
+          const totalDeltaX = lastPos.x - firstPos.x;
+          const totalDeltaTime = lastPos.time - firstPos.time;
+          
+          if (totalDeltaTime > 0) {
+            velocity = totalDeltaX / totalDeltaTime; // pixels per millisecond
+          }
         }
+        
+        // Get current dates before animation
+        const currentStart = new Date(state.currentStartDate);
+        const currentEnd = new Date(state.currentEndDate);
+        
+        // Apply momentum if there's enough velocity
+        if (Math.abs(velocity) > 0.05) { // Lower threshold for smoother experience
+          const containerRect = container.getBoundingClientRect();
+          const effectiveWidth = containerRect.width - 180;
+          const dateRangeMillis = state.currentEndDate.getTime() - state.currentStartDate.getTime();
+          const millisPerPixel = dateRangeMillis / effectiveWidth;
+          
+          // Calculate momentum distance with more natural feel
+          const momentumDistance = velocity * 400; // Increased for more pronounced effect
+          
+          // Convert to date shift
+          const momentumShift = momentumDistance * millisPerPixel * -1;
+          
+          // Calculate target dates after momentum
+          const targetStartDate = new Date(state.currentStartDate.getTime() + momentumShift);
+          const targetEndDate = new Date(state.currentEndDate.getTime() + momentumShift);
+          
+          // Don't do a full update before starting animation to prevent "reset" feeling
+          
+          // CRITICAL FIX: Store the current date range to ensure it doesn't reset
+          const dragStartDate = new Date(state.currentStartDate);
+          const dragEndDate = new Date(state.currentEndDate);
+          
+          // Start momentum animation from the current position
+          
+          // Start momentum animation with smoother easing
+          activeDragAnimation = new SmoothAnimation({
+            duration: 800, // Slightly longer for more natural deceleration
+            easing: t => 1 - Math.pow(1 - t, 4), // Quartic ease-out for smoother momentum
+            targetFPS: 60, // Higher frame rate for smoother animation
+            onUpdate: (progress) => {
+              // Calculate interpolated dates using the CURRENT position as the starting point
+              const startDiff = targetStartDate.getTime() - dragStartDate.getTime();
+              const endDiff = targetEndDate.getTime() - dragEndDate.getTime();
+              
+              const interpolatedStart = new Date(dragStartDate.getTime() + startDiff * progress);
+              const interpolatedEnd = new Date(dragEndDate.getTime() + endDiff * progress);
+              
+              // Update state with interpolated dates
+              state.currentStartDate = interpolatedStart;
+              state.currentEndDate = interpolatedEnd;
+              
+              // Always update the month indicator
+              currentMonthDisplay.textContent = `${formatMonth(interpolatedStart)} - ${formatMonth(interpolatedEnd)}`;
+              
+              // Use direct DOM manipulation for most of the animation and do a full update near the end
+              if (progress < 0.9) {
+                // For smoother animation, calculate the incremental shift since last frame
+                const totalShift = startDiff * progress;
+                const frameShift = totalShift / 10; // Small incremental shift
+                
+                // Update a subset of DOM elements for better performance
+                if (progress % 0.1 < 0.02) {
+                  moveTimelineElements(frameShift);
+                }
+              } else {
+                // Near the end, do a full update for accuracy
+                update();
+              }
+            },
+            onComplete: () => {
+              // Final update to ensure everything is properly positioned
+              state.currentStartDate = targetStartDate;
+              state.currentEndDate = targetEndDate;
+              
+              // CRITICAL: Update the timeline state object to persist the changes
+              if (window.timelineState) {
+                window.timelineState.currentStartDate = new Date(targetStartDate);
+                window.timelineState.currentEndDate = new Date(targetEndDate);
+                window.timelineState.isZoomed = true;
+              }
+              
+              // Force a full update at the end to ensure consistency
+              update();
+              activeDragAnimation = null;
+            }
+          }).start();
+        } else {
+          // If no momentum, just apply the current position directly
+          const finalStartDate = new Date(state.currentStartDate);
+          const finalEndDate = new Date(state.currentEndDate);
+          
+          // No momentum, maintain current position
+          
+          // Short animation to settle
+          activeDragAnimation = new SmoothAnimation({
+            duration: 50, // Very short
+            easing: t => t, // Linear for short animation
+            onUpdate: (progress) => {
+              // Don't change the dates, just update visuals
+              if (progress >= 0.5) {
+                update();
+              }
+            },
+            onComplete: () => {
+              // Ensure state is still pointing to the correct dates
+              state.currentStartDate = finalStartDate;
+              state.currentEndDate = finalEndDate;
+              
+              // CRITICAL: Update the timeline state object to persist the changes
+              if (window.timelineState) {
+                window.timelineState.currentStartDate = new Date(finalStartDate);
+                window.timelineState.currentEndDate = new Date(finalEndDate);
+                window.timelineState.isZoomed = true;
+              }
+              
+              update();
+              activeDragAnimation = null;
+            }
+          }).start();
+        }
+        
+        // Clear tracking
+        dragPositions = [];
       }
     });
     
     // Add CSS for proper cursor
     container.style.cursor = 'grab';
+    
+    // Function to efficiently move timeline elements without full redraw
+    function moveTimelineElements(shift) {
+      // Calculate the visual shift as percentage
+      const containerRect = container.getBoundingClientRect();
+      const effectiveWidth = containerRect.width - 180;
+      const dateRangeMillis = state.currentEndDate.getTime() - state.currentStartDate.getTime();
+      
+      // Move all event elements and lifelines
+      document.querySelectorAll('.timeline-event, .life-line, .milestone-container').forEach(el => {
+        const currentLeft = parseFloat(el.style.left) || 0;
+        // Adjust position based on shift but convert to percentage
+        const shiftPercentage = (shift / dateRangeMillis) * 100;
+        el.style.left = `${currentLeft - shiftPercentage}%`;
+      });
+      
+      // Move month markers
+      document.querySelectorAll('.month-marker').forEach(el => {
+        const currentLeft = parseFloat(el.style.left) || 0;
+        const shiftPercentage = (shift / dateRangeMillis) * 100;
+        el.style.left = `${currentLeft - shiftPercentage}%`;
+      });
+      
+      // Move life labels in the separate container
+      document.querySelectorAll('.life-label.below-chart').forEach(el => {
+        // For absolutely positioned elements with pixel values
+        if (el.style.left.endsWith('px')) {
+          const currentLeft = parseFloat(el.style.left) || 0;
+          const pixelShift = (shift / dateRangeMillis) * effectiveWidth;
+          el.style.left = `${currentLeft - pixelShift}px`;
+        } 
+        // For percentage-based positioning
+        else {
+          const currentLeft = parseFloat(el.style.left) || 0;
+          const shiftPercentage = (shift / dateRangeMillis) * 100;
+          el.style.left = `${currentLeft - shiftPercentage}%`;
+        }
+      });
+    }
   }
 });
