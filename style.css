@@ -10,13 +10,50 @@ body {
   max-height: 0;
   overflow: hidden;
   opacity: 0;
-  transition: max-height 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
+  transition: max-height 0.4s ease, opacity 0.3s ease, transform 0.3s ease;
   transform: translateY(-10px);
+  border-left: 4px solid #3b82f6;
 }
 #form-container.open {
-  max-height: 500px;
+  max-height: 800px; /* Increased for better accommodating all form fields */
   opacity: 1;
   transform: translateY(0);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+}
+
+/* Improve form styling */
+#event-form {
+  display: grid;
+  gap: 1rem;
+}
+
+#event-form input, 
+#event-form select {
+  border-radius: 6px !important; 
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  padding: 0.5rem 0.75rem !important;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+}
+
+#event-form input:focus,
+#event-form select:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
+  outline: none !important;
+}
+
+#event-form button[type="submit"] {
+  background-color: #3b82f6 !important;
+  border-radius: 6px !important;
+  padding: 0.5rem 1rem !important;
+  font-weight: 500 !important;
+  transition: transform 0.1s ease, box-shadow 0.1s ease !important;
+}
+
+#event-form button[type="submit"]:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
 }
 
 /* Timeline main container */
@@ -102,17 +139,18 @@ body {
 
 /* Zoom controls */
 .zoom-controls {
-  position: absolute !important; /* Force positioning */
-  right: 10px !important;
-  top: 10px !important;
+  position: fixed !important; /* Force fixed positioning */
+  right: 30px !important;
+  bottom: 30px !important;
+  top: auto !important;
   display: flex !important; /* Force display */
   flex-direction: column !important;
   gap: 8px;
   background-color: rgba(255, 255, 255, 0.9);
   border-radius: 8px;
   padding: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  z-index: 999 !important; /* Ensure it's on top */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 1000 !important; /* Ensure it's on top */
   transition: opacity 0.2s ease;
   opacity: 0.85;
   pointer-events: auto !important; /* Ensure clicks work */
@@ -387,6 +425,45 @@ body {
 }
 .delete-button {
   color: #ef4444;
+}
+
+/* Import/Export buttons styling */
+.controls-container {
+  transition: all 0.2s ease;
+}
+
+.controls-container .right-controls .ui.button {
+  background-color: white !important;
+  color: #4b5563 !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 6px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.2s ease !important;
+  font-weight: 500 !important;
+  padding: 0.6rem 1rem !important;
+}
+
+.controls-container .right-controls .ui.button:hover {
+  border-color: #d1d5db !important;
+  background-color: #f9fafb !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1) !important;
+}
+
+.controls-container .left-controls .ui.primary.button {
+  background-color: #3b82f6 !important;
+  color: white !important;
+  border-radius: 6px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.2s ease !important;
+  font-weight: 500 !important;
+  padding: 0.6rem 1rem !important;
+}
+
+.controls-container .left-controls .ui.primary.button:hover {
+  background-color: #2563eb !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15) !important;
 }
 
 /* Responsive adjustments */

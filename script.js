@@ -13,6 +13,32 @@ document.addEventListener('DOMContentLoaded', () => {
       }, 250);
     }
   });
+  
+  // Function to populate category dropdown from existing categories
+  function populateCategories() {
+    if (window.$ && $.fn.dropdown) {
+      const categoryMenu = document.getElementById('category-menu');
+      if (categoryMenu) {
+        // Get unique categories from events
+        const categories = [...new Set(events.map(e => e.category).filter(Boolean))];
+        
+        // Clear existing items except the "None" option
+        categoryMenu.innerHTML = '<div class="item" data-value="">None</div>';
+        
+        // Add each category to the dropdown
+        categories.forEach(category => {
+          const item = document.createElement('div');
+          item.className = 'item';
+          item.setAttribute('data-value', category);
+          item.textContent = category;
+          categoryMenu.appendChild(item);
+        });
+        
+        // Refresh the dropdown
+        $('#category-dropdown').dropdown('refresh');
+      }
+    }
+  }
   // Polyfill for crypto.randomUUID which might be needed by testing frameworks
   if (!crypto.randomUUID) {
     crypto.randomUUID = function() {
@@ -26,8 +52,76 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Initialize Semantic UI components
   if (window.$ && $.fn.dropdown) {
-    $('.ui.dropdown').dropdown();
+    // Basic dropdowns
+    $('.ui.dropdown').not('#category-dropdown, #country-dropdown').dropdown();
+    
+    // Category dropdown with allowAdditions
+    $('#category-dropdown').dropdown({
+      allowAdditions: true,
+      fullTextSearch: true,
+      message: {
+        addResult: 'Add <b>{term}</b>'
+      }
+    });
+    
+    // Country dropdown with search
+    $('#country-dropdown').dropdown({
+      fullTextSearch: true,
+      allowAdditions: true,
+      message: {
+        addResult: 'Add <b>{term}</b>'
+      }
+    });
+    
+    // Populate country dropdown with common countries
+    const commonCountries = [
+      'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Argentina', 'Armenia', 'Australia', 
+      'Austria', 'Azerbaijan', 'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 
+      'Belize', 'Benin', 'Bhutan', 'Bolivia', 'Bosnia and Herzegovina', 'Botswana', 'Brazil', 
+      'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi', 'Cambodia', 'Cameroon', 'Canada', 
+      'Cape Verde', 'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia', 'Comoros', 
+      'Congo', 'Costa Rica', 'Croatia', 'Cuba', 'Cyprus', 'Czech Republic', 'Denmark', 'Djibouti', 
+      'Dominican Republic', 'DR Congo', 'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea', 
+      'Eritrea', 'Estonia', 'Eswatini', 'Ethiopia', 'Fiji', 'Finland', 'France', 'Gabon', 'Gambia', 
+      'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau', 
+      'Guyana', 'Haiti', 'Honduras', 'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 
+      'Ireland', 'Israel', 'Italy', 'Jamaica', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kiribati', 
+      'Kuwait', 'Kyrgyzstan', 'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 
+      'Liechtenstein', 'Lithuania', 'Luxembourg', 'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 
+      'Mali', 'Malta', 'Marshall Islands', 'Mauritania', 'Mauritius', 'Mexico', 'Micronesia', 
+      'Moldova', 'Monaco', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar', 'Namibia', 
+      'Nauru', 'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 
+      'North Macedonia', 'Norway', 'Oman', 'Pakistan', 'Palau', 'Palestine', 'Panama', 'Papua New Guinea', 
+      'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal', 'Qatar', 'Romania', 'Russia', 'Rwanda', 
+      'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent and the Grenadines', 'Samoa', 'San Marino', 
+      'Saudi Arabia', 'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore', 'Slovakia', 
+      'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa', 'South Korea', 'South Sudan', 'Spain', 
+      'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland', 'Syria', 'Taiwan', 'Tajikistan', 
+      'Tanzania', 'Thailand', 'Timor-Leste', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia', 
+      'Turkey', 'Turkmenistan', 'Tuvalu', 'Uganda', 'Ukraine', 'United Arab Emirates', 
+      'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan', 'Vanuatu', 'Vatican City', 
+      'Venezuela', 'Vietnam', 'Yemen', 'Zambia', 'Zimbabwe'
+    ];
+    
+    const countryMenu = document.getElementById('country-menu');
+    if (countryMenu) {
+      // Clear existing items first (except the None option)
+      countryMenu.innerHTML = '';
+      
+      // Add each country to the dropdown
+      commonCountries.forEach(country => {
+        const item = document.createElement('div');
+        item.className = 'item';
+        item.setAttribute('data-value', country);
+        item.textContent = country;
+        countryMenu.appendChild(item);
+      });
+      
+      // Refresh the dropdown to show the new items
+      $('#country-dropdown').dropdown('refresh');
+    }
   }
+  
   if (window.$ && $.fn.checkbox) {
     $('.ui.checkbox').checkbox();
   }
@@ -77,15 +171,34 @@ document.addEventListener('DOMContentLoaded', () => {
   addEventBtn.addEventListener('click', () => {
     editingId = null;
     form.reset();
-    categoryInput.value = '';
+    
+    // Reset and populate dropdowns
+    if (window.$ && $.fn.dropdown) {
+      $('#category-dropdown').dropdown('clear');
+      $('#country-dropdown').dropdown('clear');
+    }
+    
+    // Populate categories from existing ones
+    populateCategories();
+    
     submitBtn.textContent = 'Add Event';
     cancelBtn.style.display = '';
     formTitle.textContent = 'Add New Event';
+    
+    // Hide delete button container when adding
+    const deleteBtnContainer = document.getElementById('delete-btn-container');
+    if (deleteBtnContainer) {
+      deleteBtnContainer.innerHTML = '';
+    }
+    
     if (window.$ && $.fn.checkbox) {
       $('#important').checkbox('uncheck');
+      $('#is-parent').checkbox('uncheck');
     } else {
       importantCheckbox.checked = false;
+      isParentCheckbox.checked = false;
     }
+    
     showForm();
     formContainer.scrollIntoView({ behavior: 'smooth' });
   });
@@ -378,6 +491,9 @@ document.addEventListener('DOMContentLoaded', () => {
       
       update();
       colorInput.value = randomColor();
+      
+      // Populate category dropdown after loading events
+      populateCategories();
     })
     .catch(err => console.error('Error loading events.yaml:', err));
 
@@ -391,10 +507,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const end = (type === 'range') ? new Date(endInput.value) : new Date(startInput.value);
     const color = colorInput.value;
     const metadata = metadataInput.value.trim();
-    const category = categoryInput.value ? categoryInput.value : null;
+    
+    // Get category from dropdown or hidden input
+    let category = null;
+    if (window.$ && $.fn.dropdown) {
+      category = $('#category-dropdown').dropdown('get value') || null;
+    } else {
+      category = categoryInput.value ? categoryInput.value : null;
+    }
+    
     const isImportant = importantCheckbox.checked;
     const isParent = isParentCheckbox.checked;
     const customEventId = eventIdInput.value.trim();
+    
+    // Capture the original event (if editing) to check for category changes
+    const originalEvent = editingId ? events.find(ev => ev.id === editingId) : null;
     
     // Get parent relationship
     const parentId = parentInput.value ? parseInt(parentInput.value) : null;
@@ -410,7 +537,15 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Get location data
     const city = cityInput.value.trim();
-    const country = countryInput.value.trim();
+    let country = '';
+    
+    // Get country from dropdown or hidden input
+    if (window.$ && $.fn.dropdown) {
+      country = $('#country-dropdown').dropdown('get value') || '';
+    } else {
+      country = countryInput.value.trim();
+    }
+    
     const location = (city || country) ? { city, country } : null;
     
     if (type === 'range' && end < start) {
@@ -422,6 +557,13 @@ document.addEventListener('DOMContentLoaded', () => {
       // Update existing event
       const ev = events.find(ev => ev.id === editingId);
       if (ev) {
+        // Check if this is changing from regular event to parent event
+        const changingToParent = !ev.isParent && isParent;
+        
+        // Store original category for use in child preservation logic
+        const originalCategory = ev.category;
+        
+        // Update event properties
         ev.title = title;
         ev.start = start;
         ev.end = end;
@@ -438,6 +580,31 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update eventId if provided
         if (customEventId && customEventId !== ev.eventId) {
           ev.eventId = customEventId;
+        }
+        
+        // Fix for milestone category bug: 
+        // If an event is being changed to a parent, preserve the category of
+        // any milestone events in the same category rather than allowing them
+        // to be implicitly tied to the parent
+        if (changingToParent && originalCategory) {
+          // Find all milestone events in the same category
+          const milestonesInCategory = events.filter(event => 
+            event.type === 'milestone' && 
+            event.category === originalCategory &&
+            event.id !== editingId
+          );
+          
+          // Make sure they keep their original category and don't get linked to this parent
+          milestonesInCategory.forEach(milestone => {
+            // Ensure the milestone stays in its original category
+            milestone.category = originalCategory;
+            
+            // If the milestone was parented to this event, remove the link
+            if (milestone.parent === editingId) {
+              milestone.parent = null;
+              milestone.parentId = null;
+            }
+          });
         }
       }
     } else {
@@ -470,6 +637,7 @@ document.addEventListener('DOMContentLoaded', () => {
     submitBtn.textContent = 'Add Event';
     cancelBtn.style.display = '';
     update();
+    populateCategories(); // Update category dropdown after adding/editing
     hideForm();
   });
 
@@ -497,17 +665,46 @@ document.addEventListener('DOMContentLoaded', () => {
     
     colorInput.value = d.color;
     metadataInput.value = d.metadata || '';
-    categoryInput.value = d.category || '';
+    
+    // Update parent input
     parentInput.value = d.parent || '';
     eventIdInput.value = d.eventId || '';
     
-    // Set location data
-    if (d.location) {
-      cityInput.value = d.location.city || '';
-      countryInput.value = d.location.country || '';
+    // Populate categories from existing ones
+    populateCategories();
+    
+    // Set category using Semantic UI dropdown
+    if (window.$ && $.fn.dropdown) {
+      if (d.category) {
+        $('#category-dropdown').dropdown('set selected', d.category);
+      } else {
+        $('#category-dropdown').dropdown('clear');
+      }
+      
+      // Set location data using Semantic UI dropdown for country
+      if (d.location) {
+        cityInput.value = d.location.city || '';
+        
+        if (d.location.country) {
+          $('#country-dropdown').dropdown('set selected', d.location.country);
+        } else {
+          $('#country-dropdown').dropdown('clear');
+        }
+      } else {
+        cityInput.value = '';
+        $('#country-dropdown').dropdown('clear');
+      }
     } else {
-      cityInput.value = '';
-      countryInput.value = '';
+      // Fallback if jQuery is not available
+      categoryInput.value = d.category || '';
+      
+      if (d.location) {
+        cityInput.value = d.location.city || '';
+        countryInput.value = d.location.country || '';
+      } else {
+        cityInput.value = '';
+        countryInput.value = '';
+      }
     }
     
     // Set checkbox states
@@ -530,20 +727,26 @@ document.addEventListener('DOMContentLoaded', () => {
       isParentCheckbox.checked = !!d.isParent;
     }
     
-    // Add delete button in the edit form
-    if (!document.getElementById('delete-event-btn')) {
+    // Add delete button in the delete button container
+    const deleteBtnContainer = document.getElementById('delete-btn-container');
+    if (deleteBtnContainer) {
+      // Clear any existing button first
+      deleteBtnContainer.innerHTML = '';
+      
+      // Create delete button
       const deleteEventBtn = document.createElement('button');
       deleteEventBtn.id = 'delete-event-btn';
-      deleteEventBtn.className = 'ui negative button';
+      deleteEventBtn.className = 'ui negative button w-full';
       deleteEventBtn.textContent = 'Delete Event';
-      deleteEventBtn.style.marginRight = '10px';
       deleteEventBtn.type = 'button'; // Ensure it's not a submit button
       deleteEventBtn.addEventListener('click', (e) => {
         e.preventDefault();
         deleteEvent(editingId);
         hideForm();
       });
-      submitBtn.parentNode.insertBefore(deleteEventBtn, submitBtn);
+      
+      // Add to the dedicated container
+      deleteBtnContainer.appendChild(deleteEventBtn);
     }
     
     submitBtn.textContent = 'Update Event';
@@ -1094,20 +1297,40 @@ document.addEventListener('DOMContentLoaded', () => {
     container.selectAll('*').remove();
     
     const [startDomain, endDomain] = timeDomain;
-    const filtered = events.filter(d => 
+    
+    // Filter range events within the time domain
+    const filteredRanges = events.filter(d => 
       d.category && 
       d.end >= startDomain && 
       d.start <= endDomain &&
       d.type === 'range'
     );
     
+    // Filter milestone events within the time domain
+    const filteredMilestones = events.filter(d => 
+      d.category && 
+      d.start >= startDomain && 
+      d.start <= endDomain &&
+      d.type === 'milestone'
+    );
+    
     const durations = {};
-    filtered.forEach(d => {
+    
+    // Add range event durations
+    filteredRanges.forEach(d => {
       const s = d.start < startDomain ? startDomain : d.start;
       const e = d.end > endDomain ? endDomain : d.end;
       const days = (e - s) / (1000 * 60 * 60 * 24);
       
       durations[d.category] = (durations[d.category] || 0) + days;
+    });
+    
+    // Add 1% per milestone as requested (based on total days in the period)
+    const totalPeriodDays = (endDomain - startDomain) / (1000 * 60 * 60 * 24);
+    const milestoneValue = totalPeriodDays * 0.01; // 1% of the time period
+    
+    filteredMilestones.forEach(d => {
+      durations[d.category] = (durations[d.category] || 0) + milestoneValue;
     });
     
     const data = Object.entries(durations).map(([key, value]) => ({ 
@@ -1927,20 +2150,28 @@ document.addEventListener('DOMContentLoaded', () => {
       zoomControlsContainer.id = 'timeline-zoom-controls'; // Add ID for easier selection
       zoomControlsContainer.className = 'zoom-controls';
       
-      // Force inline styles to ensure visibility
+      // Force inline styles to ensure visibility - position INSIDE timeline
       zoomControlsContainer.style.display = 'flex';
       zoomControlsContainer.style.flexDirection = 'column';
-      zoomControlsContainer.style.position = 'fixed'; // Use fixed instead of absolute
-      zoomControlsContainer.style.top = '100px';
-      zoomControlsContainer.style.right = '20px';
+      zoomControlsContainer.style.position = 'fixed'; // Use fixed positioning for consistent location
+      zoomControlsContainer.style.top = 'auto'; // Clear top position
+      zoomControlsContainer.style.bottom = '30px'; // Position at bottom for better visibility
+      zoomControlsContainer.style.right = '30px'; // Position from right edge
       zoomControlsContainer.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
-      zoomControlsContainer.style.padding = '10px';
+      zoomControlsContainer.style.padding = '8px';
       zoomControlsContainer.style.borderRadius = '8px';
-      zoomControlsContainer.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.2)';
-      zoomControlsContainer.style.zIndex = '9999'; // Very high z-index
+      zoomControlsContainer.style.boxShadow = '0 2px 6px rgba(0, 0, 0, 0.15)';
+      zoomControlsContainer.style.zIndex = '1000'; // Higher z-index to ensure visibility
       
-      // Add directly to the document body instead of the container
-      document.body.appendChild(zoomControlsContainer);
+      // Add directly to the timeline container for proper positioning
+      // Find the timeline-container element for better positioning
+      const timelineContainer = document.getElementById('timeline-container');
+      if (timelineContainer) {
+        timelineContainer.appendChild(zoomControlsContainer);
+      } else {
+        // Fallback to the original container if timeline-container not found
+        container.appendChild(zoomControlsContainer);
+      }
       
       // Mark that controls have been added
       state.zoomControlsAdded = true;
@@ -2298,8 +2529,18 @@ document.addEventListener('DOMContentLoaded', () => {
       const dateRangeMillis = state.currentEndDate.getTime() - state.currentStartDate.getTime();
       const millisPerPixel = dateRangeMillis / effectiveWidth;
       
-      // Calculate the shift based on the mouse movement
-      const shift = deltaX * millisPerPixel * -1;
+      // Calculate the shift based on the mouse movement, but with a dynamic damping factor
+      // that scales with zoom level (the more zoomed in, the less dampening needed)
+      
+      // Calculate zoom level based on date range (in days)
+      const dateRangeInDays = dateRangeMillis / (1000 * 60 * 60 * 24);
+      
+      // Damping factor is stronger when zoomed out (viewing years), gentler when zoomed in (viewing days)
+      // Base damping of 0.3 at medium zoom level, adjusted by zoom factor
+      const zoomFactor = Math.min(1, Math.max(0.1, 180 / dateRangeInDays));
+      const damping = 0.3 * zoomFactor; // Stronger damping (slower) for zoomed out view
+      
+      const shift = deltaX * millisPerPixel * -1 * damping;
       
       // Update dates based on the shift
       const newStartDate = new Date(state.currentStartDate.getTime() + shift);
@@ -2392,8 +2633,16 @@ document.addEventListener('DOMContentLoaded', () => {
           const dateRangeMillis = state.currentEndDate.getTime() - state.currentStartDate.getTime();
           const millisPerPixel = dateRangeMillis / effectiveWidth;
           
-          // Calculate momentum distance with more natural feel
-          const momentumDistance = velocity * 400; // Increased for more pronounced effect
+          // Calculate momentum distance with dynamic damping based on zoom level
+          
+          // Calculate zoom level based on date range (in days)
+          const dateRangeInDays = dateRangeMillis / (1000 * 60 * 60 * 24);
+          
+          // Apply the same zoom-based damping to momentum as we do to drag
+          const zoomFactor = Math.min(1, Math.max(0.1, 180 / dateRangeInDays));
+          const momentumDamping = 0.3 * zoomFactor; // Stronger damping (slower) when zoomed out
+          
+          const momentumDistance = velocity * 400 * momentumDamping; // Apply zoom-adjusted damping
           
           // Convert to date shift
           const momentumShift = momentumDistance * millisPerPixel * -1;

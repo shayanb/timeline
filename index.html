@@ -60,9 +60,15 @@
           </div>
           <div class="field">
             <label for="category">Category</label>
-            <select id="category">
-              <option value="">None</option>
-            </select>
+            <div class="ui search selection dropdown" id="category-dropdown">
+              <input type="hidden" id="category">
+              <i class="dropdown icon"></i>
+              <div class="default text">Select or Type Category</div>
+              <div class="menu" id="category-menu">
+                <div class="item" data-value="">None</div>
+                <!-- Dropdown options will be populated by JavaScript -->
+              </div>
+            </div>
           </div>
           <div class="field">
             <label for="color">Color</label>
@@ -101,15 +107,29 @@
           </div>
           <div class="field">
             <label for="country">Country</label>
-            <input type="text" id="country" placeholder="Country">
+            <div class="ui search selection dropdown" id="country-dropdown">
+              <input type="hidden" id="country">
+              <i class="dropdown icon"></i>
+              <div class="default text">Select Country</div>
+              <div class="menu" id="country-menu">
+                <!-- Dropdown options will be populated by JavaScript -->
+              </div>
+            </div>
           </div>
         </div>
         <div class="field">
           <label for="metadata">Notes</label>
           <input type="text" id="metadata" placeholder="Additional details">
         </div>
-        <button type="submit" id="submit-btn" class="ui primary button">Add Event</button>
-        <button type="button" id="cancel-btn" class="ui button">Cancel</button>
+        <div id="form-buttons-grid" class="grid grid-cols-3 gap-4 mt-4">
+          <div id="delete-btn-container" class="col-span-1"></div>
+          <div class="col-span-1 flex justify-center">
+            <button type="button" id="cancel-btn" class="ui button w-full">Cancel</button>
+          </div>
+          <div class="col-span-1 flex justify-end">
+            <button type="submit" id="submit-btn" class="ui primary button w-full">Add Event</button>
+          </div>
+        </div>
       </form>
     </section>
 
