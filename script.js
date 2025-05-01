@@ -61,6 +61,15 @@ document.addEventListener('DOMContentLoaded', () => {
       fullTextSearch: true,
       message: {
         addResult: 'Add <b>{term}</b>'
+      },
+      onChange: function(value) {
+        // Update row dropdown options when category changes
+        if (typeInput.value === 'range') {
+          populateRowDropdown(value);
+          
+          // Refresh the row dropdown
+          $(rowInput).dropdown('refresh');
+        }
       }
     });
     
@@ -142,8 +151,46 @@ document.addEventListener('DOMContentLoaded', () => {
   const eventIdInput = document.getElementById('event-id');
   const cityInput = document.getElementById('city');
   const countryInput = document.getElementById('country');
+  const rowInput = document.getElementById('event-row');
+  const rowField = document.getElementById('row-field');
   const importFile = document.getElementById('import-file');
   const importBtn = document.getElementById('import-btn');
+  
+  // Function to populate the row dropdown based on the category's existing events
+  function populateRowDropdown(category, currentRow = null) {
+    // Clear existing options
+    rowInput.innerHTML = '';
+    
+    // Get max row number for this category + 1 for a new row
+    let maxRow = 0;
+    
+    if (category) {
+      // Get all range events in this category
+      const categoryEvents = events.filter(e => 
+        e.type === 'range' && e.category === category
+      );
+      
+      // Find the highest row number
+      for (const event of categoryEvents) {
+        if (event.row !== undefined && event.row !== null) {
+          maxRow = Math.max(maxRow, event.row);
+        }
+      }
+    }
+    
+    // Add options from 0 to maxRow + 1
+    for (let i = 0; i <= maxRow + 1; i++) {
+      const option = document.createElement('option');
+      option.value = i;
+      option.textContent = i === 0 ? 'Top Row (0)' : i;
+      rowInput.appendChild(option);
+    }
+    
+    // If we have a current row value, try to select it
+    if (currentRow !== null && currentRow !== undefined) {
+      rowInput.value = currentRow;
+    }
+  }
   const exportButton = document.getElementById('export-yaml');
   const timelineDiv = document.getElementById('timeline');
   const timelineMonths = document.getElementById('timeline-months');
@@ -209,6 +256,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const submitBtn = document.getElementById('submit-btn');
   const cancelBtn = document.getElementById('cancel-btn');
   
+  // Get the close button
+  const closeFormBtn = document.getElementById('close-form-btn');
+  
+  // Close button handler
+  closeFormBtn.addEventListener('click', () => {
+    hideForm();
+  });
+  
   // Cancel edit action
   cancelBtn.addEventListener('click', () => {
     editingId = null;
@@ -223,14 +278,30 @@ document.addEventListener('DOMContentLoaded', () => {
     return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
   }
 
-  // Toggle end-date field based on event type
+  // Toggle end-date field and row field based on event type
   typeInput.addEventListener('change', () => {
+    // Show/hide end date field
     if (typeInput.value === 'range') {
       endInput.disabled = false;
       endInput.setAttribute('required', '');
+      
+      // Show row field for range events only
+      rowField.style.display = 'block';
+      
+      // Populate row dropdown options (current category from dropdown)
+      const currentCategory = categoryInput.value;
+      populateRowDropdown(currentCategory);
+      
+      // Initialize dropdown
+      if (window.$ && $.fn.dropdown) {
+        $(rowInput).dropdown('refresh');
+      }
     } else {
       endInput.disabled = true;
       endInput.removeAttribute('required');
+      
+      // Hide row field for non-range events
+      rowField.style.display = 'none';
     }
   });
 
@@ -253,7 +324,9 @@ document.addEventListener('DOMContentLoaded', () => {
           const category = ev.category || ev.parent || null;
           const place = ev.place || null;
           const isImportant = !!ev.isImportant;
+          const isParent = !!ev.isParent;
           const categoryBgColor = ev.categoryBgColor || null;
+          const row = ev.row !== undefined ? ev.row : null;
           
           // Handle location data in various formats
           let location = null;
@@ -282,8 +355,12 @@ document.addEventListener('DOMContentLoaded', () => {
             };
           }
           
+          // Store original event ID if available for reference
+          const eventId = ev.id || null;
+          
           return { 
             id: nextId++, 
+            eventId,
             title: ev.title, 
             start, 
             end, 
@@ -294,7 +371,10 @@ document.addEventListener('DOMContentLoaded', () => {
             place,  // Keep for backward compatibility
             location, // Add normalized location data
             isImportant,
-            categoryBgColor 
+            isParent,
+            row,
+            categoryBgColor,
+            parentId: ev.parentId || null
           };
         });
         
@@ -345,7 +425,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Export current events to YAML file (using latest data from the UI)
   exportButton.addEventListener('click', () => {
-    // Ensure we have the latest data by recalculating rows before export
+    // Update the state of all events by performing recalculations
     Object.keys(groupByCategory(events)).forEach(category => {
       const categoryEvents = events.filter(e => (e.category || 'General') === category && e.type === 'range');
       const sortedEvents = sortByDate(categoryEvents);
@@ -355,7 +435,11 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
     
+    // Debug: log current state of all events
+    console.log("Current events state before export:", JSON.parse(JSON.stringify(events)));
+    
     const exportData = events.map(d => {
+      // Start with basic required fields
       const ev = { 
         title: d.title, 
         start: d.start.toISOString().slice(0, 10)
@@ -366,16 +450,21 @@ document.addEventListener('DOMContentLoaded', () => {
         ev.id = d.eventId;
       }
       
+      // Add end date for range events
       if (d.type === 'range') {
         ev.end = d.end.toISOString().slice(0, 10);
       }
       
+      // Always include type to avoid ambiguity
       ev.type = d.type;
       
+      // Include all additional properties if they exist
       if (d.color) ev.color = d.color;
       if (d.metadata) ev.metadata = d.metadata;
       if (d.category) ev.category = d.category;
       if (d.categoryBgColor) ev.categoryBgColor = d.categoryBgColor;
+      
+      // Explicitly include boolean flags
       if (d.isImportant) ev.isImportant = true;
       if (d.isParent) ev.isParent = true;
       
@@ -384,11 +473,12 @@ document.addEventListener('DOMContentLoaded', () => {
         ev.row = d.row;
       }
       
-      // Include parent reference (use string ID)
+      // Handle parent references
       if (d.parentId) {
+        // If we have a direct parentId, use it
         ev.parentId = d.parentId;
       } else if (d.parent) {
-        // Try to find the parent's eventId
+        // Otherwise try to find the parent's eventId
         const parent = events.find(event => event.id === d.parent);
         if (parent && parent.eventId) {
           ev.parentId = parent.eventId;
@@ -425,9 +515,43 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // First pass: Load all events and keep track of their IDs
       data.forEach(ev => {
-        const type = ev.type || (ev.life_event ? 'life' : 'range');
+        // For "First Office" and similar entries without a type, explicitly check for both start and end dates
+        // to determine if it should be a range event
+        let type;
+        if (ev.type) {
+          type = ev.type;
+        } else if (ev.life_event) {
+          type = 'life';
+        } else if (ev.end && ev.start) {
+          // If both start and end dates are specified, it's a range event
+          type = 'range';
+        } else {
+          type = 'milestone'; // Default for single-date events
+        }
+        
+        // Ensure start date is valid
         const start = new Date(ev.start);
-        const end = (type === 'range') ? new Date(ev.end || ev.start) : new Date(ev.start);
+        if (isNaN(start.getTime())) {
+          console.error("Invalid start date for event:", ev.title, ev.start);
+          return; // Skip this event
+        }
+        
+        // For range events, ensure end date is valid or default to start date
+        let end;
+        if (type === 'range') {
+          if (ev.end) {
+            end = new Date(ev.end);
+            if (isNaN(end.getTime())) {
+              console.error("Invalid end date for event:", ev.title, ev.end);
+              end = new Date(start); // Fallback to start date
+            }
+          } else {
+            end = new Date(start); // Default to start date if not specified
+          }
+        } else {
+          end = new Date(start); // For non-range events, end equals start
+        }
+        
         const color = ev.color || randomColor();
         const metadata = ev.metadata || '';
         const category = ev.category || ev.parent || null;
@@ -439,10 +563,17 @@ document.addEventListener('DOMContentLoaded', () => {
         // Handle new location structure
         let location = null;
         if (ev.location) {
-          location = {
-            city: ev.location.city || '',
-            country: ev.location.country || ''
-          };
+          if (typeof ev.location === 'object') {
+            location = {
+              city: ev.location.city || '',
+              country: ev.location.country || ''
+            };
+          } else if (typeof ev.location === 'string') {
+            location = {
+              city: '',
+              country: ev.location
+            };
+          }
         } else if (ev.place) {
           // Backward compatibility for older format
           location = {
@@ -457,6 +588,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Store the mapping between string ID and numeric ID
         idMap[eventId] = numericId;
+        
+        // Log for debugging
+        console.log(`Loading event: "${ev.title}" (${type}), Start: ${start.toISOString()}, End: ${end.toISOString()}`);
         
         // Add the event with both string and numeric IDs
         events.push({ 
@@ -520,6 +654,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const isParent = isParentCheckbox.checked;
     const customEventId = eventIdInput.value.trim();
     
+    // Get custom row number if provided (for range events only)
+    let customRow = null;
+    if (type === 'range' && rowInput.value !== '') {
+      customRow = parseInt(rowInput.value);
+      // Make sure it's a valid number
+      if (isNaN(customRow) || customRow < 0) {
+        customRow = null;
+      }
+    }
+    
     // Capture the original event (if editing) to check for category changes
     const originalEvent = editingId ? events.find(ev => ev.id === editingId) : null;
     
@@ -577,6 +721,11 @@ document.addEventListener('DOMContentLoaded', () => {
         ev.isParent = isParent;
         ev.location = location;
         
+        // Set custom row if provided (for range events only)
+        if (type === 'range' && customRow !== null) {
+          ev.row = customRow;
+        }
+        
         // Update eventId if provided
         if (customEventId && customEventId !== ev.eventId) {
           ev.eventId = customEventId;
@@ -613,6 +762,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const numericId = nextId++;
       
       // Add new event
+      // Add row number if specified and valid for range events
+      const rowValue = type === 'range' && customRow !== null ? customRow : null;
+      
       events.push({ 
         id: numericId,
         eventId: eventId,
@@ -628,7 +780,7 @@ document.addEventListener('DOMContentLoaded', () => {
         isImportant,
         isParent,
         location,
-        row: null // Will be calculated during rendering
+        row: rowValue // Add the row number if provided (will be calculated during rendering if null)
       });
     }
     
@@ -643,6 +795,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Edit an event
   function editEvent(d) {
+    // Log the event object to debug values
+    console.log("Editing event:", JSON.stringify(d, null, 2));
+    console.log("isImportant:", d.isImportant, "isParent:", d.isParent);
+    
     editingId = d.id;
     formTitle.textContent = 'Edit Event';
     
@@ -707,8 +863,38 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     
-    // Set checkbox states
+    // Set row number if available
+    if (d.type === 'range') {
+      rowField.style.display = 'block'; // Show row field for range events
+      
+      // Populate the row dropdown with options
+      populateRowDropdown(d.category, d.row);
+      
+      // Set selected value
+      if (d.row !== undefined && d.row !== null) {
+        rowInput.value = d.row;
+      } else {
+        rowInput.selectedIndex = 0; // Default to first option
+      }
+      
+      // Initialize Semantic UI dropdown
+      if (window.$ && $.fn.dropdown) {
+        $(rowInput).dropdown('refresh');
+      }
+    } else {
+      rowField.style.display = 'none'; // Hide row field for non-range events
+    }
+    
+    // IMPORTANT: Always directly set the checkbox values before using Semantic UI
+    // This ensures the value is set even if Semantic UI fails
+    importantCheckbox.checked = !!d.isImportant;
+    isParentCheckbox.checked = !!d.isParent;
+    
+    // Now also set them with Semantic UI if available
     if (window.$ && $.fn.checkbox) {
+      // Force a refresh of the checkbox components
+      $('.ui.checkbox').checkbox('refresh');
+      
       // Important checkbox
       if (d.isImportant) {
         $('#important').checkbox('check');
@@ -722,9 +908,11 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         $('#is-parent').checkbox('uncheck');
       }
-    } else {
-      importantCheckbox.checked = !!d.isImportant;
-      isParentCheckbox.checked = !!d.isParent;
+      
+      // Force a refresh again after setting values
+      setTimeout(function() {
+        $('.ui.checkbox').checkbox('refresh');
+      }, 50);
     }
     
     // Add delete button in the delete button container
@@ -797,23 +985,79 @@ document.addEventListener('DOMContentLoaded', () => {
     return months;
   }
 
-  // Calculate position percentage for event placement
+  // Calculate position percentage for event placement with additional checks
   function calculatePosition(date, startDate, endDate) {
-    const totalDuration = endDate.getTime() - startDate.getTime();
-    const position = date.getTime() - startDate.getTime();
-    return (position / totalDuration) * 100;
+    // Validate dates as they might come from various sources
+    if (!(date instanceof Date) || !(startDate instanceof Date) || !(endDate instanceof Date)) {
+      console.error("Invalid date in calculatePosition:", date, startDate, endDate);
+      return 0; // Safe default
+    }
+    
+    if (isNaN(date.getTime()) || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      console.error("Date is NaN in calculatePosition:", date, startDate, endDate);
+      return 0; // Safe default
+    }
+    
+    const timelineStart = startDate.getTime();
+    const timelineEnd = endDate.getTime();
+    const duration = timelineEnd - timelineStart;
+    
+    if (duration <= 0) {
+      console.error("Invalid timeline duration:", duration, startDate, endDate);
+      return 0; // Safe default
+    }
+    
+    // Get the event time and clamp it to the timeline range
+    const eventTime = Math.max(timelineStart, Math.min(timelineEnd, date.getTime()));
+    
+    // Calculate percentage position along the timeline
+    let position = ((eventTime - timelineStart) / duration) * 100;
+    
+    // Ensure the position is within 0-100% range with boundary checks
+    return Math.max(0, Math.min(100, position));
   }
 
-  // Calculate width percentage for event
+  // Calculate width percentage for event with additional validation
   function calculateWidth(startDate, endDate, timelineStart, timelineEnd) {
+    // Validate all dates are proper Date objects
+    if (!(startDate instanceof Date) || !(endDate instanceof Date) || 
+        !(timelineStart instanceof Date) || !(timelineEnd instanceof Date)) {
+      console.error("Invalid date object in calculateWidth", startDate, endDate, timelineStart, timelineEnd);
+      return 0.5; // Minimal safe width
+    }
+    
+    // Validate date values
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime()) || 
+        isNaN(timelineStart.getTime()) || isNaN(timelineEnd.getTime())) {
+      console.error("NaN date in calculateWidth", startDate, endDate, timelineStart, timelineEnd);
+      return 0.5; // Minimal safe width
+    }
+    
+    // Handle reversed dates - ensure start is always before end
+    const actualStartDate = new Date(Math.min(startDate.getTime(), endDate.getTime()));
+    const actualEndDate = new Date(Math.max(startDate.getTime(), endDate.getTime()));
+    
+    const timelineStartMs = timelineStart.getTime();
+    const timelineEndMs = timelineEnd.getTime();
+    
     // Adjust dates if they fall outside the timeline
-    const effectiveStart = startDate < timelineStart ? timelineStart : startDate;
-    const effectiveEnd = endDate > timelineEnd ? timelineEnd : endDate;
+    const effectiveStartMs = Math.max(timelineStartMs, actualStartDate.getTime());
+    const effectiveEndMs = Math.min(timelineEndMs, actualEndDate.getTime());
     
-    const totalDuration = timelineEnd.getTime() - timelineStart.getTime();
-    const eventDuration = effectiveEnd.getTime() - effectiveStart.getTime();
+    const totalTimeMs = timelineEndMs - timelineStartMs;
+    if (totalTimeMs <= 0) {
+      console.error("Invalid timeline duration in calculateWidth", timelineStart, timelineEnd);
+      return 0.5; // Minimal safe width
+    }
     
-    return (eventDuration / totalDuration) * 100;
+    // Ensure we never have a negative duration
+    const eventDurationMs = Math.max(0, effectiveEndMs - effectiveStartMs);
+    
+    // Calculate width percentage
+    const width = (eventDurationMs / totalTimeMs) * 100;
+    
+    // Ensure minimum width and don't exceed 100%
+    return Math.max(0.5, Math.min(100, width));
   }
 
   // Sort events by date for better layout
@@ -825,8 +1069,27 @@ document.addEventListener('DOMContentLoaded', () => {
   function groupByCategory(events) {
     const categories = {};
     
-    // Add events without category to "General" category
+    // Add events without category to "General" category, with date validation
     events.forEach(event => {
+      // Validate dates are proper Date objects
+      if (!(event.start instanceof Date) || (event.type === 'range' && !(event.end instanceof Date))) {
+        console.error("Invalid date detected on event:", event.title, event.start, event.end);
+        
+        // Attempt to fix dates if they're strings
+        if (typeof event.start === 'string') {
+          event.start = new Date(event.start);
+        }
+        if (event.type === 'range' && typeof event.end === 'string') {
+          event.end = new Date(event.end);
+        }
+        
+        // Skip this event if dates still invalid
+        if (isNaN(event.start.getTime()) || (event.type === 'range' && isNaN(event.end.getTime()))) {
+          console.error("Couldn't fix invalid date, skipping event:", event.title);
+          return;
+        }
+      }
+      
       const categoryName = event.category || 'General';
       if (!categories[categoryName]) {
         categories[categoryName] = [];
@@ -839,34 +1102,84 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Check if two events overlap
   function eventsOverlap(event1, event2) {
-    return event1.start < event2.end && event2.start < event1.end;
+    // First ensure both event dates are valid
+    if (!(event1.start instanceof Date) || !(event1.end instanceof Date) ||
+        !(event2.start instanceof Date) || !(event2.end instanceof Date)) {
+      console.error("Invalid date objects in eventsOverlap", event1, event2);
+      return false; // Can't determine overlap with invalid dates
+    }
+    
+    // Test Case: Skip self comparison to avoid bugs
+    if (event1.id === event2.id) {
+      return false;
+    }
+    
+    // Define what a true overlap is: one event starts before the other ends
+    const hasDateOverlap = event1.start <= event2.end && event2.start <= event1.end;
+    
+    // Debug the event comparison
+    const event1DateStr = `${event1.title} (${event1.start.toISOString().slice(0,10)} to ${event1.end.toISOString().slice(0,10)})`;
+    const event2DateStr = `${event2.title} (${event2.start.toISOString().slice(0,10)} to ${event2.end.toISOString().slice(0,10)})`;
+    
+    if (hasDateOverlap) {
+      console.log(`Events DO overlap: ${event1DateStr} and ${event2DateStr}`);
+    } else {
+      console.log(`Events do NOT overlap: ${event1DateStr} and ${event2DateStr}`);
+    }
+    
+    return hasDateOverlap;
   }
 
   // Calculate row for event to avoid overlaps
   function calculateEventRow(event, eventsInCategory) {
+    // If the event already has a custom row defined, respect it
+    if (event.row !== undefined && event.row !== null) {
+      console.log(`Using custom row ${event.row} for event: ${event.title}`);
+      return event.row;
+    }
+    
     if (!eventsInCategory || eventsInCategory.length === 0) return 0;
     
-    const overlappingEvents = eventsInCategory.filter(e => 
-      e.id !== event.id && 
-      e.type === 'range' &&
-      eventsOverlap(event, e)
-    );
+    console.log(`Calculating row for: ${event.title}`);
     
-    if (overlappingEvents.length === 0) return 0;
+    // First, sort events by start date to ensure consistent row allocation
+    const sortedEvents = [...eventsInCategory].sort((a, b) => a.start - b.start);
     
-    // Find the first available row
-    let row = 0;
-    let foundRow = false;
+    // Create a list of events that potentially overlap with this one
+    const overlappingEvents = [];
     
-    while (!foundRow) {
-      const eventsInThisRow = overlappingEvents.filter(e => e.row === row);
-      if (eventsInThisRow.length === 0) {
-        foundRow = true;
-      } else {
-        row++;
+    for (const otherEvent of sortedEvents) {
+      // Skip self or non-range events
+      if (otherEvent.id === event.id || otherEvent.type !== 'range') continue;
+      
+      // Check if the other event's date range truly overlaps with this event
+      if (eventsOverlap(event, otherEvent)) {
+        overlappingEvents.push(otherEvent);
       }
     }
     
+    // If no overlapping events, use first row (row 0)
+    if (overlappingEvents.length === 0) {
+      console.log(`No overlapping events for: ${event.title}, using row 0`);
+      return 0;
+    }
+    
+    // Find rows that are already taken by overlapping events
+    const occupiedRows = new Set();
+    overlappingEvents.forEach(e => {
+      if (e.row !== undefined && e.row !== null) {
+        occupiedRows.add(e.row);
+        console.log(`Event: ${e.title} occupies row ${e.row}`);
+      }
+    });
+    
+    // Find the first available row
+    let row = 0;
+    while (occupiedRows.has(row)) {
+      row++;
+    }
+    
+    console.log(`Assigned row ${row} for: ${event.title}`);
     return row;
   }
 
@@ -941,6 +1254,7 @@ document.addEventListener('DOMContentLoaded', () => {
       "Helsinki": [24.9384, 60.1699],
       "Warsaw": [21.0122, 52.2297],
       "Lisbon": [-9.1393, 38.7223],
+      "Istanbul": [28.9784, 41.0082],
       
       // Asia
       "Tokyo": [139.6917, 35.6895],
@@ -986,12 +1300,49 @@ document.addEventListener('DOMContentLoaded', () => {
       "Santiago": [-70.6693, -33.4489],
       "Bogotá": [-74.0721, 4.7110],
       
+      // Country coordinates (for when only country is specified)
+      "France": [2.2137, 46.2276],
+      "United States": [-98.5795, 39.8283],
+      "United Kingdom": [-3.4360, 55.3781],
+      "Germany": [10.4515, 51.1657],
+      "Italy": [12.5674, 42.5033],
+      "Spain": [-3.7492, 40.4637],
+      "China": [104.1954, 35.8617],
+      "Japan": [138.2529, 36.2048],
+      "Australia": [133.7751, -25.2744],
+      "Brazil": [-51.9253, -14.2350],
+      "Canada": [-106.3468, 56.1304],
+      "Russia": [105.3188, 61.5240],
+      "India": [78.9629, 20.5937],
+      "Turkey": [35.2433, 38.9637],
+      
       // Default fallback for unknown cities
       "Unknown": [0, 0]
     };
     
     // Apply time domain filtering similar to pie chart
     const [startDomain, endDomain] = timeDomain || [new Date(0), new Date(Date.now() + 31536000000)]; // Default to all time if not specified
+    
+    // Create a country name mapping to match GeoJSON country names
+    const countryNameMap = {
+      "United States": "United States of America",
+      "UK": "United Kingdom",
+      "USA": "United States of America",
+      "U.S.A.": "United States of America",
+      "U.S.": "United States of America",
+      "United Kingdom": "United Kingdom",
+      "Great Britain": "United Kingdom",
+      "French Guiana": "France", // Fix highlighting issue in South America - French Guiana is part of France
+      "Guyane": "France"
+      // Add more mappings as needed
+    };
+
+    // Function to normalize country names to match GeoJSON
+    function normalizeCountryName(name) {
+      if (!name) return name;
+      // Return the mapped name or the original if no mapping exists
+      return countryNameMap[name] || name;
+    }
     
     // Filter events that are within the current view domain
     const filtered = events.filter(d => {
@@ -1037,6 +1388,9 @@ document.addEventListener('DOMContentLoaded', () => {
         //   "city:", city);
         
         if (country) {
+          // Normalize the country name to match GeoJSON standards
+          const normalizedCountry = normalizeCountryName(country);
+          
           // Calculate duration - adjusting for visible time range
           let days = 1; // Default for milestone/life events
           
@@ -1047,16 +1401,19 @@ document.addEventListener('DOMContentLoaded', () => {
             days = (visibleEnd - visibleStart) / (1000 * 60 * 60 * 24);
           }
           
-          // Add to country totals
-          countryDurations[country] = (countryDurations[country] || 0) + days;
+          // Debug country mapping
+          console.log(`Map country: "${country}" -> "${normalizedCountry}"`);
           
-          // Track city data for this country
-          if (!cityData[country]) {
-            cityData[country] = {};
+          // Add to country totals - use the normalized country name
+          countryDurations[normalizedCountry] = (countryDurations[normalizedCountry] || 0) + days;
+          
+          // Track city data for this country (use normalized name)
+          if (!cityData[normalizedCountry]) {
+            cityData[normalizedCountry] = {};
           }
           
           if (city) {
-            cityData[country][city] = (cityData[country][city] || 0) + days;
+            cityData[normalizedCountry][city] = (cityData[normalizedCountry][city] || 0) + days;
             
             // Add city to our list for dots if we have coordinates
             // Use a case-insensitive lookup and handle cities not in our coordinate list
@@ -1071,12 +1428,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const existingCity = cities.find(c => c.name === city);
             if (!existingCity) {
               cities.push({
-                name: city || country,
+                name: city || normalizedCountry,
                 coordinates: coordinates,
                 days: days,
                 color: d.color || '#3B82F6',
                 event: d.title,
-                country: country
+                country: normalizedCountry
               });
             } else {
               // If city exists, accumulate days
@@ -1291,122 +1648,653 @@ document.addEventListener('DOMContentLoaded', () => {
       .text(`${Math.round(max)} days`);
   }
 
-  // Render pie chart of time spent per category
+  // Render nested pie chart with locations (inner) and categories (outer)
   function renderNestedPieChart(events, timeDomain) {
     const container = d3.select('#nested-pie-chart');
     container.selectAll('*').remove();
     
     const [startDomain, endDomain] = timeDomain;
     
-    // Filter range events within the time domain
-    const filteredRanges = events.filter(d => 
-      d.category && 
-      d.end >= startDomain && 
-      d.start <= endDomain &&
-      d.type === 'range'
+    // Filter events within the time domain
+    const filteredEvents = events.filter(d => 
+      (d.type === 'range' ? 
+        (d.end >= startDomain && d.start <= endDomain) : 
+        (d.start >= startDomain && d.start <= endDomain))
     );
     
-    // Filter milestone events within the time domain
-    const filteredMilestones = events.filter(d => 
-      d.category && 
-      d.start >= startDomain && 
-      d.start <= endDomain &&
-      d.type === 'milestone'
-    );
-    
-    const durations = {};
-    
-    // Add range event durations
-    filteredRanges.forEach(d => {
-      const s = d.start < startDomain ? startDomain : d.start;
-      const e = d.end > endDomain ? endDomain : d.end;
-      const days = (e - s) / (1000 * 60 * 60 * 24);
-      
-      durations[d.category] = (durations[d.category] || 0) + days;
-    });
-    
-    // Add 1% per milestone as requested (based on total days in the period)
-    const totalPeriodDays = (endDomain - startDomain) / (1000 * 60 * 60 * 24);
-    const milestoneValue = totalPeriodDays * 0.01; // 1% of the time period
-    
-    filteredMilestones.forEach(d => {
-      durations[d.category] = (durations[d.category] || 0) + milestoneValue;
-    });
-    
-    const data = Object.entries(durations).map(([key, value]) => ({ 
-      category: key, 
-      value 
-    }));
-    
-    if (data.length === 0) {
+    if (filteredEvents.length === 0) {
       container.append('p')
         .attr('class', 'text-gray-500 text-center')
-        .text('No category data in selected range.');
+        .text('No data in selected range.');
       return;
     }
     
+    // Calculate total period days for milestone and life event weighting
+    const totalPeriodDays = (endDomain - startDomain) / (1000 * 60 * 60 * 24);
+    const milestoneValue = totalPeriodDays * 0.01; // 1% of time period for each milestone
+    const lifeEventValue = totalPeriodDays * 0.05; // 5% of time period for each life event (increased from 2%)
+    
+    // Generate location data for inner pie
+    const locationData = {};
+    // Generate category data for outer pie
+    const categoryByLocationData = {};
+    
+    filteredEvents.forEach(event => {
+      // Determine duration based on event type
+      let duration = 0;
+      
+      if (event.type === 'range') {
+        const s = event.start < startDomain ? startDomain : event.start;
+        const e = event.end > endDomain ? endDomain : event.end;
+        duration = (e - s) / (1000 * 60 * 60 * 24);
+      } else if (event.type === 'milestone') {
+        duration = milestoneValue;
+      } else if (event.type === 'life') {
+        duration = lifeEventValue;
+      }
+      
+      // Extract location
+      const location = event.location && event.location.country 
+        ? event.location.country 
+        : (event.location && event.location.city ? event.location.city : "Other");
+      
+      // Extract category
+      const category = event.category || "Uncategorized";
+      
+      // Add to location data (inner pie)
+      if (!locationData[location]) {
+        locationData[location] = {
+          name: location,
+          value: 0,
+          children: []
+        };
+      }
+      locationData[location].value += duration;
+      
+      // Track category data for each location (outer pie)
+      if (!categoryByLocationData[location]) {
+        categoryByLocationData[location] = {};
+      }
+      
+      if (!categoryByLocationData[location][category]) {
+        categoryByLocationData[location][category] = {
+          name: category,
+          value: 0,
+          parent: location,
+          type: event.type
+        };
+      }
+      
+      categoryByLocationData[location][category].value += duration;
+    });
+    
+    // Create hierarchical data for sunburst
+    const nestedData = {
+      name: "Time Spent",
+      children: []
+    };
+    
+    // Convert location data to children
+    Object.values(locationData).forEach(location => {
+      if (location.value > 0) {
+        const locationNode = {
+          name: location.name,
+          value: location.value,
+          children: []
+        };
+        
+        // Add category children
+        if (categoryByLocationData[location.name]) {
+          Object.values(categoryByLocationData[location.name]).forEach(category => {
+            if (category.value > 0) {
+              locationNode.children.push({
+                name: category.name,
+                value: category.value,
+                parent: location.name
+              });
+            }
+          });
+        }
+        
+        nestedData.children.push(locationNode);
+      }
+    });
+    
+    // Setup SVG dimensions
     const width = container.node().clientWidth || 400;
     const height = 400;
-    const radius = Math.min(width, height) / 2;
+    const margin = 20;
     
+    // Calculate radius
+    const radius = Math.min(width, height) / 2 - margin;
+    
+    // Create SVG
     const svg = container.append('svg')
       .attr('width', width)
       .attr('height', height)
       .append('g')
       .attr('transform', `translate(${width/2},${height/2})`);
     
-    const pie = d3.pie().value(d => d.value);
+    // Create a color scale for countries/locations (inner ring)
+    const locationColorScale = d3.scaleOrdinal()
+      .domain(Object.keys(locationData))
+      .range([
+        // Vibrant, distinct colors for countries
+        "#FF6B6B", // Bright Red
+        "#4D96FF", // Bright Blue
+        "#6BCB77", // Bright Green
+        "#FFD93D", // Bright Yellow
+        "#9B5DE5", // Bright Purple
+        "#FF9E7A", // Peach
+        "#00C2A8", // Teal
+        "#F15BB5", // Pink
+        "#00BBF9", // Light Blue
+        "#7B61FF", // Indigo
+        "#FED049", // Golden
+        "#4CACBC", // Blue-Green
+        "#FF6B8B", // Salmon
+        "#2EC4B6", // Turquoise
+        "#8338EC", // Royal Purple
+        "#3A86FF", // Azure
+        "#FB5607", // Orange
+        "#06D6A0", // Mint
+        "#FFBE0B", // Amber
+        "#9E0059", // Magenta
+        "#118AB2", // Ocean Blue
+        "#EF476F", // Watermelon
+        "#8EA604", // Olive
+        "#2B9348", // Forest Green
+        "#8338EC", // Violet
+        "#8AB17D"  // Sage
+      ]);
+    
+    // Extract category colors from events data
+    function getCategoryColor(categoryName) {
+      // Default color if not found in events
+      const defaultColor = "#4F46E5";
+      
+      // Find the first event with this category that has a color
+      const categoryEvent = events.find(event => 
+        event.category === categoryName && event.color
+      );
+      
+      // Find if there's an event with a categoryBgColor specified
+      const categoryWithBgColor = events.find(event => 
+        event.category === categoryName && event.categoryBgColor
+      );
+      
+      if (categoryWithBgColor && categoryWithBgColor.categoryBgColor) {
+        // Try to extract the RGB values from rgba string
+        const rgbaMatch = categoryWithBgColor.categoryBgColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+        if (rgbaMatch) {
+          // Convert to hex
+          const r = parseInt(rgbaMatch[1]);
+          const g = parseInt(rgbaMatch[2]);
+          const b = parseInt(rgbaMatch[3]);
+          return `rgb(${r}, ${g}, ${b})`;
+        }
+      }
+      
+      // Return the event color if found, otherwise default
+      return categoryEvent ? categoryEvent.color : defaultColor;
+    }
+    
+    // Create color scale for categories using colors from events data
+    const categoryColorScale = d3.scaleOrdinal()
+      .domain(Object.keys(categoryByLocationData).flatMap(loc => 
+        Object.keys(categoryByLocationData[loc])
+      ))
+      .range(Object.keys(categoryByLocationData).flatMap(loc => 
+        Object.keys(categoryByLocationData[loc]).map(cat => getCategoryColor(cat))
+      ));
+      
+    // Helper to create a 3D shaded version of a color
+    const create3DShade = (baseColor, type) => {
+      const rgb = d3.rgb(baseColor);
+      
+      // Different shade transformations based on type
+      if (type === "darker") {
+        // Darker shade for 3D effect bottom/shadow
+        return d3.rgb(
+          Math.max(0, rgb.r * 0.7),
+          Math.max(0, rgb.g * 0.7),
+          Math.max(0, rgb.b * 0.7)
+        ).toString();
+      } else if (type === "lighter") {
+        // Lighter shade for 3D effect highlight
+        return d3.rgb(
+          Math.min(255, rgb.r + (255 - rgb.r) * 0.5),
+          Math.min(255, rgb.g + (255 - rgb.g) * 0.5),
+          Math.min(255, rgb.b + (255 - rgb.b) * 0.5)
+        ).toString();
+      }
+      return baseColor; // Default
+    };
+      
+    // Create meaningful coloring function that uses unique colors for locations
+    const colorFn = d => {
+      if (d.depth === 0) return "white"; // Root
+      
+      // For inner ring (locations), use the unique location color
+      if (d.depth === 1) {
+        return locationColorScale(d.data.name);
+      }
+      
+      // For outer ring (categories), use the category color
+      if (d.depth === 2) {
+        const categoryColor = categoryColorScale(d.data.name);
+        return categoryColor;
+      }
+      
+      return "#ccc"; // Fallback
+    };
+    
+    // Create hierarchy
+    const root = d3.hierarchy(nestedData)
+      .sum(d => d.value);
+    
+    // Create partition layout
+    const partition = d3.partition()
+      .size([2 * Math.PI, radius * 0.8]); // Reduced slightly to leave space between rings
+    
+    // Compute partition
+    partition(root);
+    
+    // Create custom arc generator with space between rings
     const arc = d3.arc()
-      .innerRadius(radius * 0.4)
-      .outerRadius(radius * 0.8);
-    
-    const labelArc = d3.arc()
-      .innerRadius(radius * 0.9)
-      .outerRadius(radius * 0.9);
-    
-    const arcs = pie(data);
-    
-    const color = d3.scaleOrdinal()
-      .domain(data.map(d => d.category))
-      .range(d3.schemeCategory10);
-    
-    // Render slices
-    svg.selectAll('path')
-      .data(arcs)
-      .join('path')
-      .attr('d', arc)
-      .attr('fill', d => color(d.data.category))
-      .attr('stroke', 'white')
-      .style('stroke-width', '2px')
-      .style('transition', 'opacity 0.2s')
-      .on('mouseover', function() {
-        d3.select(this).style('opacity', 0.8);
+      .startAngle(d => d.x0)
+      .endAngle(d => d.x1)
+      .innerRadius(d => {
+        // Add spacing between rings
+        if (d.depth === 1) return Math.max(0, d.y0 * 0.8); // Inner ring smaller
+        if (d.depth === 2) return Math.max(0, d.y0 * 1.1); // Gap between rings
+        return Math.max(0, d.y0);
       })
-      .on('mouseout', function() {
-        d3.select(this).style('opacity', 1);
+      .outerRadius(d => {
+        // Add spacing between rings
+        if (d.depth === 1) return Math.max(0, d.y1 * 0.8); // Inner ring smaller
+        return Math.max(0, d.y1);
+      })
+      .padAngle(0.03) // Add padding between segments
+      .padRadius(radius / 3);
+    
+    // Create tooltip
+    const tooltip = d3.select('body').append('div')
+      .attr('class', 'chart-tooltip')
+      .style('position', 'absolute')
+      .style('background', 'rgba(0,0,0,0.8)')
+      .style('color', 'white')
+      .style('padding', '10px')
+      .style('border-radius', '4px')
+      .style('font-size', '12px')
+      .style('pointer-events', 'none')
+      .style('opacity', 0)
+      .style('z-index', 1000);
+    
+    // Define a filter for the drop shadow
+    const defs = svg.append("defs");
+    
+    const dropShadowFilter = defs.append("filter")
+      .attr("id", "drop-shadow")
+      .attr("height", "130%");
+    
+    dropShadowFilter.append("feGaussianBlur")
+      .attr("in", "SourceAlpha")
+      .attr("stdDeviation", 3)
+      .attr("result", "blur");
+    
+    dropShadowFilter.append("feOffset")
+      .attr("in", "blur")
+      .attr("dx", 2)
+      .attr("dy", 2)
+      .attr("result", "offsetBlur");
+    
+    const feComponentTransfer = dropShadowFilter.append("feComponentTransfer")
+      .attr("in", "offsetBlur")
+      .attr("result", "shadow");
+      
+    feComponentTransfer.append("feFuncA")
+      .attr("type", "linear")
+      .attr("slope", 0.5);
+    
+    const feMerge = dropShadowFilter.append("feMerge");
+    feMerge.append("feMergeNode")
+      .attr("in", "shadow");
+    feMerge.append("feMergeNode")
+      .attr("in", "SourceGraphic");
+      
+    // Create radial gradients for each category to enhance 3D effect
+    // Get unique categories
+    const uniqueCategories = [...new Set(Object.keys(categoryByLocationData).flatMap(loc => 
+      Object.keys(categoryByLocationData[loc])
+    ))];
+    
+    // Create a map to store gradient IDs for each category
+    const categoryGradientMap = {};
+    
+    // Create gradient for each category - use a safer ID approach
+    uniqueCategories.forEach((category, index) => {
+      const baseColor = categoryColorScale(category);
+      // Use index-based IDs to avoid issues with special characters
+      const gradientId = `gradient-cat-${index}`;
+      
+      const gradient = defs.append("radialGradient")
+        .attr("id", gradientId)
+        .attr("cx", "0.5")
+        .attr("cy", "0.5")
+        .attr("r", "0.5")
+        .attr("fx", "0.25") // Offset the focal point for more dramatic lighting
+        .attr("fy", "0.25"); 
+      
+      // Add gradient stops
+      gradient.append("stop")
+        .attr("offset", "0%")
+        .attr("stop-color", create3DShade(baseColor, "lighter"));
+        
+      gradient.append("stop")
+        .attr("offset", "100%")
+        .attr("stop-color", baseColor);
+        
+      // Store the gradientId in a map for lookup
+      categoryGradientMap[category] = gradientId;
+    });
+    
+    // Add arcs with enhanced 3D effects
+    const path = svg.selectAll('path')
+      .data(root.descendants().filter(d => d.depth > 0)) // Skip the root
+      .enter().append('path')
+      .attr('class', d => d.depth === 2 ? 'category-slice' : (d.depth === 1 ? 'location-slice' : ''))
+      .attr('d', arc)
+      .attr('fill', function(d) {
+        // Basic color
+        const color = colorFn(d);
+        
+        // For outer ring (categories), use the radial gradient if available
+        if (d.depth === 2 && categoryGradientMap[d.data.name]) {
+          return `url(#${categoryGradientMap[d.data.name]})`;
+        }
+        
+        return color;
+      })
+      .attr('stroke', 'rgba(255, 255, 255, 0.5)')
+      .attr('stroke-width', 1)
+      .style('filter', d => d.depth === 1 ? 'url(#drop-shadow)' : '') // Apply shadow only to inner ring
+      .style('opacity', 0.8) // Slightly transparent by default for better highlight contrast
+      .style('transition', 'all 0.3s')
+      .on('mouseover', function(event, d) {
+        // Create tooltip content
+        let content = '';
+        
+        if (d.depth === 1) {
+          // Location (inner ring)
+          content = `<strong>${d.data.name}</strong><br>${Math.round(d.value)} days`;
+        } else {
+          // Category (outer ring)
+          content = `<strong>${d.data.name}</strong> in ${d.parent.data.name}<br>${Math.round(d.value)} days`;
+        }
+        
+        tooltip.html(content)
+          .style('opacity', 1)
+          .style('left', (event.pageX + 10) + 'px')
+          .style('top', (event.pageY - 28) + 'px');
+        
+        // Highlight segment - enhanced 3D pop effect
+        d3.select(this)
+          .style('transform', 'scale(1.03) translateZ(5px)')
+          .style('filter', 'brightness(1.1) url(#drop-shadow)')
+          .style('z-index', 10);
+      })
+      .on('mousemove', function(event) {
+        tooltip
+          .style('left', (event.pageX + 10) + 'px')
+          .style('top', (event.pageY - 28) + 'px');
+      })
+      .on('mouseout', function(event, d) {
+        tooltip.style('opacity', 0);
+        d3.select(this)
+          .style('transform', 'scale(1) translateZ(0)')
+          .style('filter', d.depth === 1 ? 'url(#drop-shadow)' : '')
+          .style('z-index', 0);
+      })
+      .on('click', function(event, d) {
+        // Only trigger filtering for category (outer) slices
+        if (d.depth === 2) {
+          const category = d.data.name;
+          
+          // Call the filtering function
+          showCategoryEvents(category);
+        }
       });
     
-    // Add labels
-    svg.selectAll('text')
-      .data(arcs)
-      .join('text')
-      .attr('transform', d => `translate(${labelArc.centroid(d)})`)
-      .attr('dy', '0.35em')
-      .attr('text-anchor', 'middle')
-      .attr('font-size', '12px')
-      .text(d => d.data.category);
+    // Add labels with external labeling strategy for small segments
+    // First, decide which segments need internal vs external labels
+    const segments = root.descendants().filter(d => d.depth === 1);
+    const minSegmentSize = 0.15; // Minimum segment size for internal labels
     
-    // Add values in center slices
-    svg.selectAll('text.value')
-      .data(arcs)
-      .join('text')
-      .attr('class', 'value')
-      .attr('transform', d => `translate(${arc.centroid(d)})`)
-      .attr('dy', '0.35em')
+    // Only show labels for segments that are large enough
+    const internalLabels = segments.filter(d => (d.x1 - d.x0) >= minSegmentSize);
+    
+    // Calculate label sizes and positions
+    function midAngle(d) {
+      return d.x0 + (d.x1 - d.x0) / 2;
+    }
+    
+    // Add internal labels only for large enough segments
+    svg.selectAll('text.internal-label')
+      .data(internalLabels)
+      .enter().append('text')
+      .attr('class', 'internal-label')
+      .attr('pointer-events', 'none')
       .attr('text-anchor', 'middle')
-      .attr('font-size', '11px')
+      .attr('transform', function(d) {
+        const angle = (midAngle(d) - Math.PI / 2) * 180 / Math.PI;
+        const midRadius = (d.y0 + d.y1) / 2 * 0.75; // Slightly adjusted
+        return `rotate(${angle}) translate(${midRadius},0) rotate(${-angle})`;
+      })
+      .attr('dy', '0.35em')
+      .attr('font-size', '10px')
       .attr('fill', 'white')
-      .text(d => Math.round(d.data.value) + 'd');
+      .style('font-weight', 'bold')
+      .style('text-shadow', '0 1px 2px rgba(0,0,0,0.5)')
+      .text(d => d.data.name);
+    
+    // No external labels - segments without labels will only show in tooltip on hover
+    
+    // Add center label
+    svg.append('text')
+      .attr('text-anchor', 'middle')
+      .attr('font-size', '13px')
+      .attr('fill', '#333')
+      .text('Places');
+      
+    // Add a legend for categories (displayed in a grid to save space)
+    const legendItems = uniqueCategories.filter(cat => cat !== "Unknown"); // Filter out "Unknown" category
+    
+    if (legendItems.length > 0) {
+      const legendContainer = container.append('div')
+        .attr('class', 'chart-legend')
+        .style('display', 'grid')
+        .style('grid-template-columns', 'repeat(auto-fill, minmax(120px, 1fr))')
+        .style('gap', '4px')
+        .style('margin-top', '15px')
+        .style('font-size', '12px');
+        
+      // Track current active filter
+      let activeFilter = null;
+      
+      // Function to show events of a specific category in the timeline
+      function showCategoryEvents(category) {
+        // If category is already active, clear the filter
+        if (activeFilter === category) {
+          // Clear filter and reset UI
+          activeFilter = null;
+          
+          // Reset pie chart - all slices back to normal
+          svg.selectAll('.category-slice')
+            .transition().duration(300)
+            .style('opacity', 0.8)
+            .style('stroke-width', 1)
+            .style('transform', 'scale(1) translateZ(0)')
+            .attr('d', d => arc(d));
+          
+          // Redraw the timeline with all events
+          renderTimeline(events, startDate, endDate);
+          
+          // Show notification
+          const notification = container.append('div')
+            .attr('class', 'chart-notification')
+            .style('position', 'absolute')
+            .style('top', '10px')
+            .style('left', '50%')
+            .style('transform', 'translateX(-50%)')
+            .style('background-color', 'rgba(0,0,0,0.7)')
+            .style('color', 'white')
+            .style('padding', '8px 16px')
+            .style('border-radius', '20px')
+            .style('font-size', '12px')
+            .style('opacity', 0)
+            .text('Showing all events');
+            
+          notification.transition()
+            .duration(300)
+            .style('opacity', 1)
+            .transition()
+            .delay(2000)
+            .duration(500)
+            .style('opacity', 0)
+            .remove();
+            
+          return;
+        }
+        
+        // Set active filter
+        activeFilter = category;
+        
+        // Hover up ALL slices of the selected category
+        svg.selectAll('.category-slice')
+          .each(function(d) {
+            if (d && d.data && d.depth === 2) {
+              if (d.data.name === category) {
+                // Pop out all slices of this category
+                d3.select(this)
+                  .transition().duration(300)
+                  .style('opacity', 1)
+                  .style('stroke-width', 2)
+                  .style('transform', 'scale(1.1) translateZ(5px)')
+                  .style('filter', 'brightness(1.1) drop-shadow(0 0 5px rgba(0,0,0,0.3))')
+                  .style('z-index', 10);
+              } else {
+                // Dim others
+                d3.select(this)
+                  .transition().duration(300)
+                  .style('opacity', 0.3)
+                  .style('transform', 'scale(0.98) translateZ(0)')
+                  .style('filter', 'none')
+                  .style('z-index', 0);
+              }
+            }
+          });
+        
+        // Filter events by the selected category
+        const categoryEvents = events.filter(e => e.category === category);
+        
+        // Redraw the timeline with filtered events
+        renderTimeline(categoryEvents, startDate, endDate);
+        
+        // Show notification
+        const notification = container.append('div')
+          .attr('class', 'chart-notification')
+          .style('position', 'absolute')
+          .style('top', '10px')
+          .style('left', '50%')
+          .style('transform', 'translateX(-50%)')
+          .style('background-color', 'rgba(0,0,0,0.7)')
+          .style('color', 'white')
+          .style('padding', '8px 16px')
+          .style('border-radius', '20px')
+          .style('font-size', '12px')
+          .style('opacity', 0)
+          .text(`Filtered to show "${category}" events. Click again to clear.`);
+          
+        notification.transition()
+          .duration(300)
+          .style('opacity', 1)
+          .transition()
+          .delay(2500)
+          .duration(500)
+          .style('opacity', 0)
+          .remove();
+      };
+      
+      // Function to highlight all arcs of a specific category
+      const highlightCategory = (category, highlight) => {
+        // Skip highlighting if a filter is active
+        if (activeFilter !== null && !highlight) return;
+        
+        // Get all pie slices
+        svg.selectAll('.category-slice')
+          .each(function(d) {
+            if (d && d.data && d.depth === 2) {
+              // If this slice belongs to the hovered/active category, highlight it
+              if (d.data.name === category) {
+                d3.select(this)
+                  .transition().duration(200)
+                  .style('opacity', highlight ? 1 : 0.8)
+                  .style('stroke-width', highlight ? 2 : 1)
+                  .attr('d', highlight ? 
+                    arc.innerRadius(innerRadius).outerRadius(radius * 1.05) : 
+                    arc.innerRadius(innerRadius).outerRadius(radius)
+                  );
+              } else if (highlight) {
+                // Dim other categories
+                d3.select(this)
+                  .transition().duration(200)
+                  .style('opacity', 0.4);
+              } else if (activeFilter === null) {
+                // Only restore appearance if no filter is active
+                d3.select(this)
+                  .transition().duration(200)
+                  .style('opacity', 0.8)
+                  .style('stroke-width', 1)
+                  .attr('d', arc.innerRadius(innerRadius).outerRadius(radius));
+              }
+            }
+          });
+      };
+      
+      legendItems.forEach(category => {
+        const legendItem = legendContainer.append('div')
+          .style('display', 'flex')
+          .style('align-items', 'center')
+          .style('margin-bottom', '4px')
+          .style('cursor', 'pointer')
+          .style('padding', '3px 5px')
+          .style('border-radius', '4px')
+          .style('transition', 'background-color 0.2s')
+          .on('mouseover', function() {
+            highlightCategory(category, true);
+            d3.select(this).style('background-color', 'rgba(0,0,0,0.05)');
+          })
+          .on('mouseout', function() {
+            highlightCategory(category, false);
+            d3.select(this).style('background-color', 'transparent');
+          })
+          .on('click', () => showCategoryEvents(category));
+          
+        legendItem.append('div')
+          .style('width', '12px')
+          .style('height', '12px')
+          .style('border-radius', '3px')
+          .style('background-color', getCategoryColor(category))
+          .style('margin-right', '6px');
+          
+        legendItem.append('div')
+          .style('white-space', 'nowrap')
+          .style('overflow', 'hidden')
+          .style('text-overflow', 'ellipsis')
+          .text(category);
+      });
+    }
   }
 
   // Main rendering function
@@ -1608,153 +2496,215 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
       
-      // Today marker
+      // Today marker with green color and label
       const today = new Date();
       if (today >= startDate && today <= endDate) {
         const todayPosition = calculatePosition(today, startDate, endDate);
         
+        // Create the Today marker
         const todayMarker = document.createElement('div');
         todayMarker.className = 'today-marker';
         todayMarker.style.left = `${todayPosition}%`;
+        todayMarker.style.backgroundColor = '#22c55e'; // Green color
         timelineArea.appendChild(todayMarker);
+        
+        // Today label is now created and added to the labels container later in the code
       }
       
       // Render events in this category
       const categoryEvents = eventsByCategory[category];
       
       categoryEvents.forEach(event => {
-        const leftPosition = calculatePosition(event.start, startDate, endDate);
+        // Don't calculate base position here for range events, we'll do it with validated dates later
+        let leftPosition;
         
         if (event.type === 'range') {
-          const width = calculateWidth(event.start, event.end, startDate, endDate);
-          const rowOffset = event.row * 40; // 40px per row
-          
-          // Create event element
-          const eventDiv = document.createElement('div');
-          eventDiv.className = 'timeline-event';
-          eventDiv.style.left = `${leftPosition}%`;
-          eventDiv.style.width = `${Math.max(0.5, width)}%`;
-          eventDiv.style.backgroundColor = event.color;
-          eventDiv.style.top = `${8 + rowOffset}px`;
-          
-          // Apply special styling for parent/child events
-          if (event.isParent) {
-            eventDiv.classList.add('parent-event');
-            eventDiv.style.top = `${2 + rowOffset}px`; // Position at the top of the row
-            // Store parent ID in dataset for reference
-            eventDiv.dataset.parentId = event.id;
-          } else if (event.parent) {
-            eventDiv.classList.add('child-event');
-          }
-          
-          timelineArea.appendChild(eventDiv);
-          
-          // Event content
-          const contentDiv = document.createElement('div');
-          contentDiv.className = 'event-content';
-          eventDiv.appendChild(contentDiv);
-          
-          // Title
-          const titleSpan = document.createElement('span');
-          titleSpan.className = 'event-title';
-          titleSpan.textContent = event.title;
-          contentDiv.appendChild(titleSpan);
-          
-          // Important indicator
-          if (event.isImportant) {
-            const starIcon = document.createElement('span');
-            starIcon.className = 'event-important';
-            starIcon.innerHTML = '★';
-            contentDiv.appendChild(starIcon);
-          }
-          
-          // Action buttons on hover
-          const actionsDiv = document.createElement('div');
-          actionsDiv.className = 'event-actions';
-          eventDiv.appendChild(actionsDiv);
-          
-          // Edit button
-          const editBtn = document.createElement('button');
-          editBtn.className = 'action-button edit-button';
-          editBtn.innerHTML = '✎';
-          editBtn.title = 'Edit';
-          editBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            editEvent(event);
-          });
-          actionsDiv.appendChild(editBtn);
-          
-          // We're removing the delete button from the chart as requested
-          // and only keeping it in the edit form
-          
-          // Click handler for entire event - use mousedown instead of click to avoid conflict with drag
-          eventDiv.addEventListener('mousedown', (e) => {
-            // Store the starting point to determine if this is a click or a drag
-            const startX = e.clientX;
-            const startY = e.clientY;
-            let hasMoved = false;
+          try {
+            // Ensure we have valid Date objects
+            if (!(event.start instanceof Date) || !(event.end instanceof Date)) {
+              console.error("Invalid date object type:", event.title, event.start, event.end);
+              return; // Skip rendering this event
+            }
             
-            // Create a function to handle the mouse up event
-            const handleMouseUp = (upEvent) => {
-              // Calculate distance moved
-              const deltaX = Math.abs(upEvent.clientX - startX);
-              const deltaY = Math.abs(upEvent.clientY - startY);
+            // Check for NaN dates
+            if (isNaN(event.start.getTime()) || isNaN(event.end.getTime())) {
+              console.error("Invalid date (NaN) for event:", event.title, event.start, event.end);
+              return; // Skip rendering this event
+            }
+            
+            // Create a valid time range (ensuring start < end)
+            const validStart = new Date(Math.min(event.start.getTime(), event.end.getTime()));
+            const validEnd = new Date(Math.max(event.start.getTime(), event.end.getTime()));
+            
+            // Ensure dates are actually Date objects by creating new instances
+            const safeStartDate = new Date(validStart.getTime());
+            const safeEndDate = new Date(validEnd.getTime());
+            const safeTimelineStart = new Date(startDate.getTime());
+            const safeTimelineEnd = new Date(endDate.getTime());
+            
+            // Calculate position directly using the enhanced functions with the safe date objects
+            // These functions handle clamping internally
+            leftPosition = calculatePosition(safeStartDate, safeTimelineStart, safeTimelineEnd);
+            const width = calculateWidth(safeStartDate, safeEndDate, safeTimelineStart, safeTimelineEnd);
+            
+            // Position indicator for detailed debugging
+            console.log(`Event: ${event.title}, Type: ${event.type}, Left: ${leftPosition}%, Width: ${width}%, ` +
+                       `StartDate: ${validStart.toISOString()}, EndDate: ${validEnd.toISOString()}, ` +
+                       `Timeline StartDate: ${startDate.toISOString()}, Timeline EndDate: ${endDate.toISOString()}`);
+            
+            const rowOffset = event.row * 40; // 40px per row
+            
+            // Create event element
+            const eventDiv = document.createElement('div');
+            eventDiv.className = 'timeline-event';
+            
+            // Set exact positioning to align with dates
+            // No transform used, direct left position for precise alignment
+            eventDiv.style.left = `${leftPosition}%`;
+            
+            // Ensure width is at least 0.5% for visibility
+            eventDiv.style.width = `${width}%`;
+            
+            // Add debug information as data attributes
+            eventDiv.setAttribute('data-start', validStart.toISOString());
+            eventDiv.setAttribute('data-end', validEnd.toISOString());
+            eventDiv.setAttribute('data-left', leftPosition);
+            eventDiv.setAttribute('data-width', width);
+            
+            // Apply visual styling
+            eventDiv.style.backgroundColor = event.color;
+            eventDiv.style.top = `${8 + rowOffset}px`;
+          
+            // Apply special styling for parent/child events
+            if (event.isParent) {
+              eventDiv.classList.add('parent-event');
+              eventDiv.style.top = `${2 + rowOffset}px`; // Position at the top of the row
+              // Store parent ID in dataset for reference
+              eventDiv.dataset.parentId = event.id;
+            } else if (event.parent) {
+              eventDiv.classList.add('child-event');
+            }
+            
+            timelineArea.appendChild(eventDiv);
+            
+            // Event content
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'event-content';
+            eventDiv.appendChild(contentDiv);
+            
+            // Title
+            const titleSpan = document.createElement('span');
+            titleSpan.className = 'event-title';
+            titleSpan.textContent = event.title;
+            contentDiv.appendChild(titleSpan);
+            
+            // Important indicator
+            if (event.isImportant) {
+              const starIcon = document.createElement('span');
+              starIcon.className = 'event-important';
+              starIcon.innerHTML = '★';
+              contentDiv.appendChild(starIcon);
+            }
+          
+            // Action buttons on hover
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'event-actions';
+            eventDiv.appendChild(actionsDiv);
+            
+            // Edit button
+            const editBtn = document.createElement('button');
+            editBtn.className = 'action-button edit-button';
+            editBtn.innerHTML = '✎';
+            editBtn.title = 'Edit';
+            editBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              editEvent(event);
+            });
+            actionsDiv.appendChild(editBtn);
+            
+            // We're removing the delete button from the chart as requested
+            // and only keeping it in the edit form
+            
+            // Click handler for entire event - use mousedown instead of click to avoid conflict with drag
+            eventDiv.addEventListener('mousedown', (e) => {
+              // Store the starting point to determine if this is a click or a drag
+              const startX = e.clientX;
+              const startY = e.clientY;
+              let hasMoved = false;
               
-              // Only process as a click if it was a small movement
-              if (!hasMoved && deltaX < 5 && deltaY < 5) {
-                // This is a click, so edit the event
-                editEvent(d); // Use the event data "d" instead of the DOM event "event"
-              }
+              // Create a function to handle the mouse up event
+              const handleMouseUp = (upEvent) => {
+                // Calculate distance moved
+                const deltaX = Math.abs(upEvent.clientX - startX);
+                const deltaY = Math.abs(upEvent.clientY - startY);
+                
+                // Only process as a click if it was a small movement
+                if (!hasMoved && deltaX < 5 && deltaY < 5) {
+                  // This is a click, so edit the event
+                  editEvent(event); // Use the event object correctly
+                }
+                
+                // Clean up event listeners
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+              };
               
-              // Clean up event listeners
-              document.removeEventListener('mousemove', handleMouseMove);
-              document.removeEventListener('mouseup', handleMouseUp);
-            };
+              // Function to detect movement
+              const handleMouseMove = () => {
+                hasMoved = true;
+              };
+              
+              // Listen for mouse move and up events
+              document.addEventListener('mousemove', handleMouseMove);
+              document.addEventListener('mouseup', handleMouseUp);
+              
+              // Prevent default to avoid text selection, etc.
+              e.preventDefault();
+            });
             
-            // Function to detect movement
-            const handleMouseMove = () => {
-              hasMoved = true;
-            };
+            // Tooltip on hover
+            eventDiv.addEventListener('mouseenter', () => {
+              tooltip
+                .style('opacity', 1)
+                .style('display', 'block')
+                .html(`
+                  <div class="font-medium">${event.title}</div>
+                  <div>${formatDate(event.start)} - ${formatDate(event.end)}</div>
+                  ${event.metadata ? `<div class="text-gray-300 mt-1">${event.metadata}</div>` : ''}
+                `);
+            });
             
-            // Listen for mouse move and up events
-            document.addEventListener('mousemove', handleMouseMove);
-            document.addEventListener('mouseup', handleMouseUp);
+            eventDiv.addEventListener('mousemove', (e) => {
+              tooltip
+                .style('left', `${e.pageX + 10}px`)
+                .style('top', `${e.pageY + 10}px`);
+            });
             
-            // Prevent default to avoid text selection, etc.
-            e.preventDefault();
-          });
-          
-          // Tooltip on hover
-          eventDiv.addEventListener('mouseenter', () => {
-            tooltip
-              .style('opacity', 1)
-              .style('display', 'block')
-              .html(`
-                <div class="font-medium">${event.title}</div>
-                <div>${formatDate(event.start)} - ${formatDate(event.end)}</div>
-                ${event.metadata ? `<div class="text-gray-300 mt-1">${event.metadata}</div>` : ''}
-              `);
-          });
-          
-          eventDiv.addEventListener('mousemove', (e) => {
-            tooltip
-              .style('left', `${e.pageX + 10}px`)
-              .style('top', `${e.pageY + 10}px`);
-          });
-          
-          eventDiv.addEventListener('mouseleave', () => {
-            tooltip.style('opacity', 0);
-          });
+            eventDiv.addEventListener('mouseleave', () => {
+              tooltip.style('opacity', 0);
+            });
+          } catch (error) {
+            console.error("Error rendering range event:", event.title, error);
+          }
         } else if (event.type === 'life') {
-          // Store life events to add them later across all categories
+          // Store life events to add them later across all categories - nothing to render here
         } else if (event.type === 'milestone') {
+          // Calculate valid position
+          if (isNaN(event.start.getTime())) {
+            console.error("Invalid date for milestone:", event.title, event.start);
+            return; // Skip rendering this event
+          }
+          
+          // Calculate position for milestone - ensure it's properly placed on the timeline
+          leftPosition = calculatePosition(event.start, startDate, endDate);
+          
           // Create container for milestone and its actions - positioned at the bottom of the row
           const milestoneContainer = document.createElement('div');
           milestoneContainer.className = 'milestone-container';
           milestoneContainer.style.position = 'absolute';
           milestoneContainer.style.left = `${leftPosition}%`;
           milestoneContainer.style.bottom = '5px'; // Position at the bottom of the row
-          milestoneContainer.style.transform = 'translateX(-50%)'; // Only transform X, not Y
+          milestoneContainer.style.transform = 'translateX(-50%)'; // Center the milestone on the exact date
           milestoneContainer.style.zIndex = '5';
           milestoneContainer.style.cursor = 'pointer';
           milestoneContainer.style.display = 'flex'; // Force display flex
@@ -1863,26 +2813,12 @@ document.addEventListener('DOMContentLoaded', () => {
       // Create a container for life event lines that spans the entire chart
       const lifeEventsContainer = document.createElement('div');
       lifeEventsContainer.className = 'life-events-container';
-      lifeEventsContainer.style.position = 'absolute';
-      lifeEventsContainer.style.top = '0';
-      lifeEventsContainer.style.left = '180px'; // Same as category label width
-      lifeEventsContainer.style.right = '0';
-      lifeEventsContainer.style.bottom = '0';
-      lifeEventsContainer.style.pointerEvents = 'none'; // Let clicks pass through
-      lifeEventsContainer.style.zIndex = '15'; // Above regular events
+      // All styling is now in CSS
       timelineDiv.appendChild(lifeEventsContainer);
       
       // Create a separate container for life event labels BELOW the chart
       const labelsContainer = document.createElement('div');
       labelsContainer.className = 'life-labels-container';
-      labelsContainer.style.display = 'flex';
-      labelsContainer.style.position = 'relative';
-      labelsContainer.style.height = '80px'; // Even taller container to fully accommodate rotated labels
-      labelsContainer.style.marginTop = '5px'; // Add a small gap between timeline and labels
-      labelsContainer.style.paddingLeft = '180px'; // Align with timeline content
-      labelsContainer.style.overflow = 'visible'; // Allow rotated labels to extend outside the container
-      labelsContainer.style.zIndex = '20'; // Higher z-index to ensure visibility
-      labelsContainer.style.width = '100%'; // Ensure the container spans the full width
       timelineDiv.parentNode.insertBefore(labelsContainer, timelineDiv.nextSibling);
       
       // Add a click handler on the entire container to handle clicks on labels
@@ -1899,8 +2835,46 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
       
+      // Add the today label to the labels container if it's in the visible range
+      const today = new Date();
+      if (today >= startDate && today <= endDate) {
+        const todayPosition = calculatePosition(today, startDate, endDate);
+        
+        // Create "Today" label
+        const todayLabel = document.createElement('div');
+        todayLabel.className = 'life-label below-chart';
+        todayLabel.textContent = 'Today';
+        
+        // Position the Today label directly under its marker
+        todayLabel.style.left = `${todayPosition}%`;
+        todayLabel.style.transform = 'translate(-50%, 0) rotate(45deg)';
+        
+        // Add a debug marker to the exact position
+        todayLabel.setAttribute('data-marker', 'today');
+        
+        // Styling
+        todayLabel.style.backgroundColor = '#22c55e';
+        todayLabel.style.fontWeight = 'bold';
+        
+        // Add to the labels container
+        labelsContainer.appendChild(todayLabel);
+        
+        // Force consistent transform for proper alignment
+        setTimeout(() => {
+          todayLabel.style.transform = 'translate(-50%, 0) rotate(45deg)';
+          todayLabel.style.transformOrigin = 'top center';
+        }, 50);
+      }
+      
       // Add each life event as a vertical line
       lifeEvents.forEach(event => {
+        // Make sure we have a valid date
+        if (isNaN(event.start.getTime())) {
+          console.error("Invalid date for life event:", event.title, event.start);
+          return; // Skip this life event
+        }
+        
+        // Calculate the exact position using our improved function
         const leftPosition = calculatePosition(event.start, startDate, endDate);
         
         // Create full-height life event line
@@ -1909,47 +2883,49 @@ document.addEventListener('DOMContentLoaded', () => {
         lineDiv.style.left = `${leftPosition}%`;
         lineDiv.style.backgroundColor = event.color;
         lineDiv.style.pointerEvents = 'auto'; // Make clickable
+        // No transform needed - we want the line to align exactly with the date
         lifeEventsContainer.appendChild(lineDiv);
         
-        // Life event label BELOW the chart (rotated 45 degrees)
+        // Create the life event label for below the chart
         const labelDiv = document.createElement('div');
         labelDiv.className = 'life-label below-chart';
         labelDiv.textContent = event.title;
-        labelDiv.style.position = 'absolute';
-        labelDiv.style.cursor = 'pointer';
-        labelDiv.dataset.eventId = event.id; // Store event ID in data attribute
         
-        // Give the label the same background color as the line
-        labelDiv.style.backgroundColor = event.color;
-        labelDiv.style.color = 'white'; // White text for better contrast
+        // Position label directly beneath the life-line
+        labelDiv.style.left = `${leftPosition}%`;
+        labelDiv.style.transform = 'translate(-50%, 0) rotate(45deg)';
         
-        // Make sure the life event line and label are exactly aligned
-        // Add event ID to the line for reference
+        // Store event ID for click handling
+        labelDiv.dataset.eventId = event.id;
         lineDiv.dataset.eventId = event.id;
         
-        // First add the label to the DOM to make sure it's measured correctly
+        // Set background color to match the line
+        labelDiv.style.backgroundColor = event.color;
+        
+        // CRITICAL: Position exactly at the same percentage as the life-line
+        labelDiv.style.left = `${leftPosition}%`;
+        
+        // Add visual indicator to see alignment
+        labelDiv.style.borderLeft = '2px solid yellow';
+        
+        // Store exact position for debugging
+        labelDiv.setAttribute('data-date-position', leftPosition);
+        lineDiv.setAttribute('data-date-position', leftPosition);
+        
+        // We'll apply transform consistently via CSS only
+        // No inline transform styling needed - CSS class handles it
+        
+        // Add the label to the container
         labelsContainer.appendChild(labelDiv);
         
-        // Then position it properly after a brief delay to ensure the DOM is updated
+        // Force consistent transform for proper alignment
         setTimeout(() => {
-          // Get the offsetLeft of the corresponding life-line to align them exactly
-          const lineRect = lineDiv.getBoundingClientRect();
-          const containerRect = labelsContainer.getBoundingClientRect();
-          
-          // Calculate the position to be aligned with the life-line
-          // Adjust for the category label width and position it centered on the life-line
-          const labelRect = labelDiv.getBoundingClientRect();
-          const labelWidth = labelRect.width;
-          const lineWidth = lineRect.width;
-          
-          // Position the label top-left corner directly under the center of the life-line
-          // For rotated labels, we want to position differently than for centered labels
-          const lineCenter = (lineRect.left - containerRect.left) + (lineWidth / 2);
-          const labelPosition = lineCenter; // Position top-left at line center
-          
-          // Update the label position - ensure it's not positioned off-screen to the left
-          labelDiv.style.left = `${Math.max(0, labelPosition)}px`;
-        }, 0);
+          labelDiv.style.transform = 'translate(-50%, 0) rotate(45deg)';
+          labelDiv.style.transformOrigin = 'top center';
+        }, 50);
+        
+        // Log for debugging
+        console.log(`Positioned life-label for "${event.title}" at ${leftPosition}%`);
         
         // Click handler for life lines - with the same approach as other click handlers
         lineDiv.addEventListener('mousedown', (e) => {
@@ -2761,35 +3737,34 @@ document.addEventListener('DOMContentLoaded', () => {
       const effectiveWidth = containerRect.width - 180;
       const dateRangeMillis = state.currentEndDate.getTime() - state.currentStartDate.getTime();
       
-      // Move all event elements and lifelines
+      // Calculate shift percentage once for all elements
+      const shiftPercentage = (shift / dateRangeMillis) * 100;
+      
+      // Move all event elements and lifelines using percentage-based positioning
       document.querySelectorAll('.timeline-event, .life-line, .milestone-container').forEach(el => {
         const currentLeft = parseFloat(el.style.left) || 0;
-        // Adjust position based on shift but convert to percentage
-        const shiftPercentage = (shift / dateRangeMillis) * 100;
         el.style.left = `${currentLeft - shiftPercentage}%`;
       });
       
       // Move month markers
       document.querySelectorAll('.month-marker').forEach(el => {
         const currentLeft = parseFloat(el.style.left) || 0;
-        const shiftPercentage = (shift / dateRangeMillis) * 100;
         el.style.left = `${currentLeft - shiftPercentage}%`;
       });
       
-      // Move life labels in the separate container
+      // Move life labels below the chart - keep them aligned with their life-lines
       document.querySelectorAll('.life-label.below-chart').forEach(el => {
-        // For absolutely positioned elements with pixel values
-        if (el.style.left.endsWith('px')) {
-          const currentLeft = parseFloat(el.style.left) || 0;
-          const pixelShift = (shift / dateRangeMillis) * effectiveWidth;
-          el.style.left = `${currentLeft - pixelShift}px`;
-        } 
-        // For percentage-based positioning
-        else {
-          const currentLeft = parseFloat(el.style.left) || 0;
-          const shiftPercentage = (shift / dateRangeMillis) * 100;
-          el.style.left = `${currentLeft - shiftPercentage}%`;
+        // Update the left position to keep the label centered under the line
+        const currentLeft = parseFloat(el.style.left) || 0;
+        el.style.left = `${currentLeft - shiftPercentage}%`;
+        
+        // Ensure transform is maintained for consistent appearance
+        if (!el.style.transform.includes('translate(-50%, 0)')) {
+          el.style.transform = 'translate(-50%, 0) rotate(45deg)';
         }
+        
+        // Keep transform origin consistent
+        el.style.transformOrigin = 'top center';
       });
     }
   }

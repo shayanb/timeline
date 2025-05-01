@@ -32,103 +32,135 @@
       </div>
     </div>
 
-    <section id="form-container" class="bg-white p-5 rounded-md shadow-sm mb-6 transition-all">
-      <h3 class="text-lg font-semibold mb-4" id="form-title">Add New Event</h3>
+    <section id="form-container" class="bg-white p-3 rounded-md shadow-sm transition-all">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="text-lg font-semibold" id="form-title">Add New Event</h3>
+        <button type="button" id="close-form-btn" class="text-gray-500 hover:text-gray-700">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        </button>
+      </div>
+      
       <form id="event-form" class="ui form">
-        <div class="three fields">
+        <!-- Basic Info Group -->
+        <div class="ui segment p-3 mb-3">
+          <h4 class="text-sm font-medium text-gray-600 mb-2">Basic Info</h4>
           <div class="field">
             <label for="title">Title</label>
             <input type="text" id="title" placeholder="Title" required>
           </div>
-          <div class="field">
-            <label for="start-date">Start Date</label>
-            <input type="date" id="start-date" required>
+          
+          <div class="two fields">
+            <div class="field">
+              <label for="start-date">Start Date</label>
+              <input type="date" id="start-date" required>
+            </div>
+            <div class="field">
+              <label for="end-date">End Date</label>
+              <input type="date" id="end-date" required>
+            </div>
           </div>
-          <div class="field">
-            <label for="end-date">End Date</label>
-            <input type="date" id="end-date" required>
-          </div>
-        </div>
-        <div class="four fields">
-          <div class="field">
-            <label for="event-type">Type</label>
-            <select id="event-type" class="ui dropdown">
-              <option value="range">Range Event</option>
-              <option value="life">Life Event</option>
-              <option value="milestone">Milestone</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="category">Category</label>
-            <div class="ui search selection dropdown" id="category-dropdown">
-              <input type="hidden" id="category">
-              <i class="dropdown icon"></i>
-              <div class="default text">Select or Type Category</div>
-              <div class="menu" id="category-menu">
-                <div class="item" data-value="">None</div>
-                <!-- Dropdown options will be populated by JavaScript -->
+          
+          <div class="two fields">
+            <div class="field">
+              <label for="event-type">Type</label>
+              <select id="event-type" class="ui dropdown">
+                <option value="range">Range Event</option>
+                <option value="life">Life Event</option>
+                <option value="milestone">Milestone</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="category">Category</label>
+              <div class="ui search selection dropdown" id="category-dropdown">
+                <input type="hidden" id="category">
+                <i class="dropdown icon"></i>
+                <div class="default text">Category</div>
+                <div class="menu" id="category-menu">
+                  <div class="item" data-value="">None</div>
+                </div>
               </div>
             </div>
           </div>
-          <div class="field">
-            <label for="color">Color</label>
-            <input type="color" id="color" value="#1f77b4">
+        </div>
+        
+        <!-- Appearance Group -->
+        <div class="ui segment p-3 mb-3">
+          <h4 class="text-sm font-medium text-gray-600 mb-2">Appearance</h4>
+          <div class="two fields">
+            <div class="field">
+              <label for="color">Color</label>
+              <input type="color" id="color" value="#1f77b4">
+            </div>
+            <div class="field" id="row-field" style="display: none;">
+              <label for="event-row">Row</label>
+              <select id="event-row" class="ui compact dropdown">
+                <!-- Options will be populated by JavaScript -->
+              </select>
+            </div>
           </div>
           <div class="field">
-            <label for="important">Important</label>
             <div class="ui checkbox">
               <input type="checkbox" id="important">
-              <label for="important"></label>
+              <label for="important">Mark as important</label>
             </div>
           </div>
         </div>
-        <div class="three fields">
-          <div class="field">
-            <label for="event-id">Event ID (optional)</label>
-            <input type="text" id="event-id" placeholder="unique-id">
-          </div>
+        
+        <!-- Relationships Group -->
+        <div class="ui segment p-3 mb-3">
+          <h4 class="text-sm font-medium text-gray-600 mb-2">Relationships</h4>
           <div class="field">
             <label for="parent-event">Parent Event</label>
-            <select id="parent-event">
+            <select id="parent-event" class="ui compact dropdown">
               <option value="">None</option>
             </select>
           </div>
           <div class="field">
-            <div class="ui checkbox" style="margin-top: 28px;">
+            <div class="ui checkbox">
               <input type="checkbox" id="is-parent">
-              <label for="is-parent">Is Parent Event</label>
+              <label for="is-parent">Mark as parent event</label>
             </div>
           </div>
-        </div>
-        <div class="two fields">
           <div class="field">
-            <label for="city">City</label>
-            <input type="text" id="city" placeholder="City">
+            <label for="event-id">Event ID</label>
+            <input type="text" id="event-id" placeholder="unique-id">
           </div>
-          <div class="field">
-            <label for="country">Country</label>
-            <div class="ui search selection dropdown" id="country-dropdown">
-              <input type="hidden" id="country">
-              <i class="dropdown icon"></i>
-              <div class="default text">Select Country</div>
-              <div class="menu" id="country-menu">
-                <!-- Dropdown options will be populated by JavaScript -->
+        </div>
+        
+        <!-- Location Group -->
+        <div class="ui segment p-3 mb-3">
+          <h4 class="text-sm font-medium text-gray-600 mb-2">Location</h4>
+          <div class="two fields">
+            <div class="field">
+              <label for="city">City</label>
+              <input type="text" id="city" placeholder="City">
+            </div>
+            <div class="field">
+              <label for="country">Country</label>
+              <div class="ui search selection dropdown" id="country-dropdown">
+                <input type="hidden" id="country">
+                <i class="dropdown icon"></i>
+                <div class="default text">Country</div>
+                <div class="menu" id="country-menu"></div>
               </div>
             </div>
           </div>
         </div>
-        <div class="field">
-          <label for="metadata">Notes</label>
-          <input type="text" id="metadata" placeholder="Additional details">
+        
+        <!-- Notes Group -->
+        <div class="ui segment p-3 mb-3">
+          <h4 class="text-sm font-medium text-gray-600 mb-2">Additional Info</h4>
+          <div class="field">
+            <label for="metadata">Notes</label>
+            <input type="text" id="metadata" placeholder="Additional details">
+          </div>
         </div>
-        <div id="form-buttons-grid" class="grid grid-cols-3 gap-4 mt-4">
-          <div id="delete-btn-container" class="col-span-1"></div>
-          <div class="col-span-1 flex justify-center">
-            <button type="button" id="cancel-btn" class="ui button w-full">Cancel</button>
-          </div>
-          <div class="col-span-1 flex justify-end">
-            <button type="submit" id="submit-btn" class="ui primary button w-full">Add Event</button>
-          </div>
+        
+        <!-- Action Buttons -->
+        <div class="flex gap-2 justify-between mb-2">
+          <div id="delete-btn-container" style="flex: 1;"></div>
+          <button type="button" id="cancel-btn" class="ui small button">Cancel</button>
+          <button type="submit" id="submit-btn" class="ui small primary button">Add Event</button>
         </div>
       </form>
     </section>
@@ -150,7 +182,7 @@
         <div id="world-heatmap"></div>
       </div>
       <div class="bg-white p-4 rounded-md shadow-sm">
-        <h3 class="text-lg font-semibold mb-3">Time Spent by Category</h3>
+        <h3 class="text-lg font-semibold mb-3">Places & Categories</h3>
         <div id="nested-pie-chart"></div>
       </div>
     </section>

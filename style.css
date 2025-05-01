@@ -7,33 +7,99 @@ body {
 
 /* Form container for add/edit popup */
 #form-container {
-  max-height: 0;
-  overflow: hidden;
+  position: fixed;
+  right: -320px;
+  top: 80px;
+  width: 300px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  overflow-x: hidden;
   opacity: 0;
-  transition: max-height 0.4s ease, opacity 0.3s ease, transform 0.3s ease;
-  transform: translateY(-10px);
+  transition: right 0.3s ease, opacity 0.3s ease;
   border-left: 4px solid #3b82f6;
+  z-index: 1000;
+  background-color: white;
+  box-shadow: -3px 0 15px rgba(0, 0, 0, 0.1);
+  border-radius: 8px 0 0 8px;
 }
 #form-container.open {
-  max-height: 800px; /* Increased for better accommodating all form fields */
+  right: 0;
   opacity: 1;
-  transform: translateY(0);
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
 }
 
 /* Improve form styling */
 #event-form {
   display: grid;
-  gap: 1rem;
+  gap: 0.75rem;
+}
+
+#event-form .ui.segment {
+  padding: 0.625rem !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: none !important;
+  border-radius: 6px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+#event-form h4 {
+  margin-bottom: 0.5rem !important;
+  color: #4b5563 !important;
+  border-bottom: 1px solid #f3f4f6 !important;
+  padding-bottom: 0.5rem !important;
+}
+
+#event-form .field label {
+  font-size: 0.85rem !important;
+  color: #6b7280 !important;
+  margin-bottom: 0.25rem !important;
+}
+
+#event-form .ui.checkbox {
+  display: flex !important;
+  align-items: center !important;
+  height: 100% !important;
+}
+
+#event-form .ui.checkbox label {
+  padding-left: 1.5rem !important;
+  font-size: 0.85rem !important;
+}
+
+#close-form-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 50%;
+  padding: 4px;
+}
+
+#close-form-btn:hover {
+  background-color: #f3f4f6;
 }
 
 #event-form input, 
-#event-form select {
+#event-form select,
+#event-form .ui.dropdown {
   border-radius: 6px !important; 
   border: 1px solid #e2e8f0 !important;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
-  padding: 0.5rem 0.75rem !important;
+  padding: 0.4rem 0.5rem !important;
   transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+  font-size: 0.85rem !important;
+}
+
+#event-form .field {
+  margin-bottom: 0.5rem !important;
+}
+
+#event-form .ui.dropdown .menu {
+  width: 100% !important;
+  max-height: 200px !important;
+  overflow-y: auto !important;
 }
 
 #event-form input:focus,
@@ -150,11 +216,16 @@ body {
   border-radius: 8px;
   padding: 8px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  z-index: 1000 !important; /* Ensure it's on top */
-  transition: opacity 0.2s ease;
+  z-index: 900 !important; /* Below the form z-index (1000) */
+  transition: right 0.3s ease, opacity 0.2s ease;
   opacity: 0.85;
   pointer-events: auto !important; /* Ensure clicks work */
   visibility: visible !important; /* Force visibility */
+}
+
+/* Move zoom controls when form is open */
+#form-container.open ~ #timeline-container .zoom-controls {
+  right: 320px !important; /* Match form width + a bit of margin */
 }
 
 .zoom-controls:hover {
@@ -199,8 +270,19 @@ body {
   top: 0;
   bottom: 0;
   width: 2px;
-  background-color: #ef4444;
+  background-color: #22c55e; /* Green color */
   z-index: 10;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6); /* Glow effect */
+}
+
+/* Today label styling */
+.today-label {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+  transition: transform 0.2s ease;
+}
+
+.today-label:hover {
+  transform: translateX(-50%) translateY(-2px);
 }
 
 /* Events */
@@ -214,10 +296,11 @@ body {
   transition: box-shadow 0.2s ease, transform 0.2s ease;
   z-index: 5;
   min-width: 50px;
+  /* No transform by default - align exactly with calculated position */
 }
 .timeline-event:hover {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transform: translateY(-1px);
+  transform: translateY(-1px); /* Only move up on hover, not horizontally */
 }
 
 /* Parent event styling */
@@ -230,6 +313,7 @@ body {
 .timeline-event.parent-event:hover {
   opacity: 1;
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px); /* Only move up on hover, not horizontally */
 }
 
 /* Child event styling */
@@ -274,37 +358,15 @@ body {
 }
 
 /* Style specifically for below-chart labels */
-.life-label.below-chart {
-  position: absolute;
-  top: 10px; /* Move down from the top for better visibility */
-  left: 0;
-  transform: rotate(30deg); /* Rotate 30 degrees as requested */
-  transform-origin: left top;
-  padding: 4px 8px;
-  font-size: 11px;
-  white-space: nowrap;
-  z-index: 20;
-  border-radius: 4px;
-  margin-top: 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
-  line-height: 1.2;
-  max-width: none !important; /* Ensure no width limitation */
-  overflow: visible !important; /* Ensure text isn't cut off */
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: white;
-}
-
-.life-label.below-chart:hover {
-  transform: rotate(30deg) translateY(-2px);
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
-  opacity: 1;
-}
-
+/* Container for life event lines */
 .life-events-container {
   pointer-events: none;
-  position: relative;
-  padding-bottom: 0;
-  margin-bottom: 0;
+  position: absolute;
+  top: 0;
+  left: 180px; /* Same as category label width */
+  right: 0;
+  bottom: 0;
+  z-index: 15;
   overflow: visible;
 }
 
@@ -312,15 +374,73 @@ body {
   pointer-events: auto;
 }
 
+/* Life-line styling */
+.life-line {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  height: 100%;
+  z-index: 10;
+  background-color: currentColor;
+  cursor: pointer;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+  opacity: 0.7;
+  transition: opacity 0.2s ease, width 0.2s ease;
+}
+
+.life-line:hover {
+  opacity: 1;
+  width: 3px;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Container for life event labels */
 .life-labels-container {
-  background: none;
+  width: 100%;
   position: relative;
-  z-index: 15;
-  margin-top: -1px;
-  padding-top: 0;
+  height: 80px;
+  margin-top: 5px;
   overflow: visible;
-  min-height: 80px !important; /* Force minimum height */
-  height: auto !important; /* Allow expansion if needed */
+  z-index: 20;
+  padding-left: 180px; /* Match the timeline layout */
+}
+
+/* Life label styling - using a different approach for perfect alignment */
+.life-label.below-chart {
+  position: absolute;
+  padding: 4px 8px;
+  font-size: 11px;
+  white-space: nowrap;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  cursor: pointer;
+  
+  /* Important: Use absolute positioning for stability */
+  top: 2px; /* Small offset from the top to match the life-line */
+  
+  /* 
+   * The transform is applied by JavaScript directly
+   * This will use transform: translate(-50%, 0) rotate(45deg);
+   */
+  
+  /* Square top corner for visible alignment with life-line */
+  border-top-right-radius: 0;
+  
+  /* Add visible alignment marker */
+  border-top: 2px solid yellow;
+  
+  /* Ensure consistent z-index */
+  z-index: 12;
+  
+  /* Create alignment point at center top */
+  transform-origin: top center;
+}
+
+.life-label.below-chart:hover {
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+  opacity: 1;
 }
 
 .milestone-container {
@@ -366,7 +486,7 @@ body {
 }
 
 /* Tooltip */
-.tooltip {
+.tooltip, .chart-tooltip, .map-tooltip {
   position: absolute;
   pointer-events: none;
   background: rgba(17, 24, 39, 0.9);
@@ -380,7 +500,7 @@ body {
   transition: opacity 0.2s ease;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
-.tooltip.show {
+.tooltip.show, .chart-tooltip.show, .map-tooltip.show {
   opacity: 1;
 }
 

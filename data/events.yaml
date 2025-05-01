@@ -178,8 +178,9 @@
     country: "United States"
 
 - title: "First Office"
-  start: "2018-09-01"
+  start: "2018-08-31"
   end: "2020-08-31"
+  type: "range"
   metadata: "First physical office space"
   category: "career"
   location:
