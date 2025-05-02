@@ -1,2 +1,4 @@
 .DS_Store
 data/shayan-life.yaml
+
+**/.claude/settings.local.json
