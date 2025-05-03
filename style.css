@@ -599,3 +599,142 @@ body {
     width: 100%;
   }
 }
+
+/* Import stats styling */
+#import-stats {
+  transition: all 0.3s ease;
+  font-size: 0.85rem;
+  margin-top: 10px;
+  border-top: 1px solid #f0f0f0;
+  padding-top: 10px;
+}
+
+.right-controls {
+  display: flex;
+  align-items: center;
+}
+
+.controls-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Import/export button fixes */
+.ui.compact.buttons .button {
+  padding: 0.6em 1em !important;
+  height: auto !important;
+  line-height: 1 !important;
+}
+
+.ui.small.button, .ui.small.buttons .button {
+  font-size: 0.85rem !important;
+  min-height: 2.2em !important;
+}
+
+/* Modification status styling in the button area */
+#modification-status.ui.small.yellow.label {
+  vertical-align: middle !important;
+  height: auto !important;
+  padding: 0.5em 0.8em !important;
+  margin-left: 0.5em !important;
+  font-size: 0.8rem !important;
+  line-height: 1 !important;
+}
+
+/* Fix for export dropdown menu */
+.ui.dropdown .menu {
+  position: absolute !important;
+  z-index: 9999 !important; 
+  max-height: 300px !important;
+  overflow-y: auto !important;
+}
+
+#export-dropdown.ui.dropdown {
+  position: relative;
+  z-index: 9000;
+}
+
+/* Fix alignment between icon and text in buttons */
+.ui.button > .icon:not(.button) {
+  vertical-align: middle !important;
+  margin-top: -0.1em !important;
+}
+
+/* Footer styling */
+footer {
+  margin-top: 2rem;
+  padding: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Remove from footer since it's now inline */
+
+/* Styles for printable version */
+#printable-version {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  padding: 20px;
+}
+
+#printable-version header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+#printable-version #timeline-container {
+  margin: 20px 0;
+  overflow: visible !important;
+}
+
+#printable-version #charts-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin: 20px 0;
+}
+
+#printable-version footer {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 12px;
+  color: #666;
+}
+
+/* Make sure SVGs and charts are visible in exports */
+#world-heatmap svg,
+#nested-pie-chart svg,
+#world-heatmap canvas,
+#nested-pie-chart canvas {
+  width: 100% !important;
+  height: auto !important;
+  max-height: 400px;
+  overflow: visible !important;
+}
+
+/* Fix for SVG in exports */
+#app svg {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Show all nested elements in exports */
+#app * {
+  break-inside: avoid;
+}
+
+/* Don't try to fix labels in CSS, we'll handle it differently in JS */
+
+/* Format dialog styling */
+.ui.mini.modal .ui.two.buttons {
+  margin-top: 1rem;
+}
+
+.ui.mini.modal .ui.two.buttons .button {
+  margin: 0 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.ui.mini.modal .ui.two.buttons .button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}

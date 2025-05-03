@@ -1,5 +1,50 @@
 // Interactive Timeline Script
+// App configuration
+const APP_VERSION = '1.5.0';
+const COPYRIGHT = '© 2025 Timeline App';
+let hasUnsavedChanges = false;
+
+// PNG export initialization
+if (typeof window !== 'undefined') {
+  window.addEventListener('load', () => {
+    if (window.html2canvas) {
+      console.log('html2canvas loaded successfully');
+    } else {
+      console.warn('html2canvas not detected - PNG export may not be available');
+    }
+  });
+}
+
+// Function to update the modification status
+function updateModificationStatus() {
+  const statusElement = document.getElementById('modification-status');
+  if (statusElement) {
+    if (hasUnsavedChanges) {
+      statusElement.style.display = 'inline-block';
+    } else {
+      statusElement.style.display = 'none';
+    }
+  }
+  
+  // We no longer need to update the footer modification status
+  // as it's been moved to the buttons area
+}
 document.addEventListener('DOMContentLoaded', () => {
+  // Initialize footer with version and copyright
+  const versionElement = document.getElementById('app-version');
+  const copyrightElement = document.getElementById('app-copyright');
+  
+  if (versionElement) {
+    versionElement.textContent = `Version ${APP_VERSION}`;
+  }
+  
+  if (copyrightElement) {
+    copyrightElement.textContent = COPYRIGHT;
+  }
+  
+  // Initialize modification status
+  updateModificationStatus();
+  
   // Add window resize event listener to reposition labels when window size changes
   window.addEventListener('resize', () => {
     // Only update if we have life events
@@ -305,16 +350,91 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Import events via YAML file input (with category support)
+  // Function to parse CSV
+  function parseCSV(text) {
+    const lines = text.split(/\r?\n/);
+    const headers = lines[0].split(',').map(header => header.trim());
+    
+    const result = [];
+    for (let i = 1; i < lines.length; i++) {
+      if (!lines[i].trim()) continue; // Skip empty lines
+      
+      const values = lines[i].split(',').map(val => val.trim());
+      const obj = {};
+      
+      headers.forEach((header, index) => {
+        obj[header] = values[index] || '';
+      });
+      
+      result.push(obj);
+    }
+    
+    return result;
+  }
+  
+  // Function to display import stats
+  function showImportStats(data, fileType) {
+    const statsElement = document.getElementById('import-stats');
+    const statsText = document.getElementById('import-stats-text');
+    
+    if (!statsElement || !statsText) return;
+    
+    // Calculate stats
+    const eventCount = data.length;
+    const categories = new Set();
+    const locations = new Set();
+    let rangeEvents = 0;
+    let lifeEvents = 0;
+    let milestones = 0;
+    
+    data.forEach(event => {
+      if (event.category) categories.add(event.category);
+      if (event.location && event.location.country) locations.add(event.location.country);
+      
+      switch(event.type) {
+        case 'range': rangeEvents++; break;
+        case 'life': lifeEvents++; break;
+        case 'milestone': milestones++; break;
+      }
+    });
+    
+    // Set stats text
+    statsText.innerHTML = `Imported ${eventCount} events from ${fileType.toUpperCase()}. 
+                         <br>Categories: ${categories.size}, Locations: ${locations.size}
+                         <br>Types: ${rangeEvents} ranges, ${lifeEvents} life events, ${milestones} milestones`;
+    
+    // Show stats (don't auto-hide)
+    statsElement.style.display = 'block';
+  }
+
+  // Import events via YAML or CSV file input
   importFile.addEventListener('change', e => {
     const file = importFile.files[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
       try {
-        const data = jsyaml.load(reader.result);
+        let data = [];
+        const fileContent = reader.result;
+        const fileType = file.name.split('.').pop().toLowerCase();
+        
+        // Parse based on file type
+        if (fileType === 'csv') {
+          data = parseCSV(fileContent);
+        } else {
+          // YAML or YML
+          data = jsyaml.load(fileContent);
+        }
+        
+        if (!Array.isArray(data)) {
+          throw new Error('Imported data must be an array of events');
+        }
+        
+        // Reset the modified flag for new imports
+        hasUnsavedChanges = false;
+        updateModificationStatus();
+        
         // Map imported events with properties
-        // Process and convert the imported data
         events = data.map(ev => {
           const type = ev.type || (ev.life_event ? 'life' : 'range');
           const start = new Date(ev.start);
@@ -378,6 +498,9 @@ document.addEventListener('DOMContentLoaded', () => {
           };
         });
         
+        // Show import stats
+        showImportStats(events, fileType);
+        
         // Force reload the world map data to ensure heatmap shows imported locations
         if (worldGeoJson) {
           // Explicitly render the world heatmap and nested pie chart with current date range
@@ -423,8 +546,205 @@ document.addEventListener('DOMContentLoaded', () => {
     importFile.value = '';
   });
 
-  // Export current events to YAML file (using latest data from the UI)
-  exportButton.addEventListener('click', () => {
+  // Function to convert event data to CSV format
+  function eventsToCSV(events) {
+    if (events.length === 0) return '';
+    
+    // Get all possible headers from all events
+    const headers = new Set();
+    events.forEach(event => {
+      Object.keys(event).forEach(key => {
+        if (key === 'id') return; // Skip internal ID
+        if (key === 'start' || key === 'end') {
+          headers.add(key); // Use string format for dates
+        } else if (key === 'location') {
+          headers.add('location.city');
+          headers.add('location.country');
+        } else {
+          headers.add(key);
+        }
+      });
+    });
+    
+    // Convert headers set to array
+    const headerArray = Array.from(headers);
+    
+    // Create CSV header row
+    let csv = headerArray.join(',') + '\n';
+    
+    // Add each event as a row
+    events.forEach(event => {
+      const row = headerArray.map(header => {
+        if (header === 'start' || header === 'end') {
+          return event[header] ? event[header].toISOString().slice(0, 10) : '';
+        } else if (header === 'location.city') {
+          return event.location ? (event.location.city || '') : '';
+        } else if (header === 'location.country') {
+          return event.location ? (event.location.country || '') : '';
+        } else if (typeof event[header] === 'boolean') {
+          return event[header] ? 'true' : 'false';
+        } else if (typeof event[header] === 'object' && event[header] !== null) {
+          return JSON.stringify(event[header]).replace(/"/g, '""');
+        } else {
+          return event[header] !== undefined ? String(event[header]).replace(/"/g, '""') : '';
+        }
+      }).map(value => {
+        // Enclose in quotes if contains comma, newline or double quote
+        if (value.includes(',') || value.includes('\n') || value.includes('"')) {
+          return `"${value}"`;
+        }
+        return value;
+      });
+      
+      csv += row.join(',') + '\n';
+    });
+    
+    return csv;
+  }
+  
+  // Function to capture a PNG screenshot of the timeline
+  function captureScreenshot() {
+    // Show a loading indicator
+    const loadingToast = document.createElement('div');
+    loadingToast.className = 'ui toast';
+    loadingToast.innerHTML = `<div class="content"><div class="ui active tiny inline loader"></div> Generating PNG...</div>`;
+    loadingToast.style.position = 'fixed';
+    loadingToast.style.top = '1rem';
+    loadingToast.style.right = '1rem';
+    loadingToast.style.zIndex = '9999';
+    loadingToast.style.padding = '0.75rem 1rem';
+    loadingToast.style.backgroundColor = 'white';
+    loadingToast.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+    loadingToast.style.borderRadius = '4px';
+    document.body.appendChild(loadingToast);
+    
+    // Get title for filename
+    const title = document.querySelector('header h1')?.textContent?.trim() || 'Interactive Timeline';
+    const safeTitle = title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    
+    // Store original state of elements we'll temporarily modify
+    const controlsContainer = document.querySelector('.controls-container');
+    const controlsDisplay = controlsContainer ? controlsContainer.style.display : 'flex';
+    const modStatus = document.getElementById('modification-status');
+    const modStatusDisplay = modStatus ? modStatus.style.display : 'none';
+    
+    // Temporarily hide controls and modification status
+    if (controlsContainer) controlsContainer.style.display = 'none';
+    if (modStatus) modStatus.style.display = 'none';
+    
+    // Add temporary version info to the header
+    const header = document.querySelector('header');
+    const versionInfo = document.createElement('div');
+    versionInfo.id = 'temp-version-info';
+    versionInfo.style.textAlign = 'center';
+    versionInfo.style.fontSize = '12px';
+    versionInfo.style.color = '#666';
+    versionInfo.style.marginTop = '5px';
+    versionInfo.textContent = `Version ${APP_VERSION} - ${COPYRIGHT}`;
+    header.appendChild(versionInfo);
+    
+    // Fix any SVG visibility issues before screenshot
+    const svgElements = document.querySelectorAll('svg');
+    svgElements.forEach(svg => {
+      svg.style.visibility = 'visible';
+      svg.style.opacity = '1';
+    });
+    
+    // Ensure life event labels are correctly positioned
+    const lifeLabels = document.querySelectorAll('.life-label.below-chart');
+    lifeLabels.forEach(label => {
+      if (label.style.transform) {
+        // Make sure transform property is properly set
+        label.style.transformOrigin = 'top center';
+      }
+    });
+    
+    // Take screenshot of the entire app container
+    const appContainer = document.getElementById('app');
+    
+    // Options for html2canvas
+    const options = {
+      scale: 2,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#FFFFFF',
+      logging: false,
+      onclone: function(clonedDoc) {
+        // Additional fixes for the cloned document before screenshot
+        
+        // Make sure all SVGs are visible in the cloned document
+        const clonedSvgs = clonedDoc.querySelectorAll('svg');
+        clonedSvgs.forEach(svg => {
+          svg.style.visibility = 'visible';
+          svg.style.opacity = '1';
+          svg.setAttribute('width', svg.getAttribute('width') || '100%');
+          svg.setAttribute('height', svg.getAttribute('height') || 'auto');
+        });
+        
+        // Fix for life event labels in the cloned document
+        const clonedLifeLabels = clonedDoc.querySelectorAll('.life-label');
+        clonedLifeLabels.forEach(label => {
+          // Ensure the label is visible
+          label.style.visibility = 'visible';
+          label.style.opacity = '1';
+        });
+      }
+    };
+    
+    // Take the screenshot
+    html2canvas(appContainer, options)
+      .then(canvas => {
+        // Create download link
+        const imgData = canvas.toDataURL('image/png', 1.0);
+        const a = document.createElement('a');
+        a.href = imgData;
+        a.download = `${safeTitle}_export.png`;
+        a.click();
+        
+        // Restore original state
+        if (controlsContainer) controlsContainer.style.display = controlsDisplay;
+        if (modStatus) modStatus.style.display = modStatusDisplay;
+        if (document.getElementById('temp-version-info')) {
+          document.getElementById('temp-version-info').remove();
+        }
+        document.body.removeChild(loadingToast);
+      })
+      .catch(error => {
+        console.error('Error capturing screenshot:', error);
+        
+        // Restore original state
+        if (controlsContainer) controlsContainer.style.display = controlsDisplay;
+        if (modStatus) modStatus.style.display = modStatusDisplay;
+        if (document.getElementById('temp-version-info')) {
+          document.getElementById('temp-version-info').remove();
+        }
+        document.body.removeChild(loadingToast);
+        
+        alert('Failed to generate PNG. Please try again.');
+      });
+  }
+  
+  // Initialize export dropdown with fixed text option
+  if (window.$ && $.fn.dropdown) {
+    $('#export-dropdown').dropdown({
+      action: 'hide',           // Just hide the menu but don't change the text
+      selectOnKeydown: false,   // Disable automatic selection
+      onChange: function() {
+        // Force text to always be "Export"
+        setTimeout(() => {
+          $('.ui.dropdown .text').text('Export');
+        }, 10);
+      }
+    });
+  }
+  
+  // Setup export buttons
+  const exportYamlBtn = document.getElementById('export-yaml');
+  const exportCsvBtn = document.getElementById('export-csv');
+  const exportPngBtn = document.getElementById('export-png');
+  
+  // Export YAML
+  exportYamlBtn.addEventListener('click', () => {
     // Update the state of all events by performing recalculations
     Object.keys(groupByCategory(events)).forEach(category => {
       const categoryEvents = events.filter(e => (e.category || 'General') === category && e.type === 'range');
@@ -434,9 +754,6 @@ document.addEventListener('DOMContentLoaded', () => {
         event.row = calculateEventRow(event, categoryEvents);
       });
     });
-    
-    // Debug: log current state of all events
-    console.log("Current events state before export:", JSON.parse(JSON.stringify(events)));
     
     const exportData = events.map(d => {
       // Start with basic required fields
@@ -503,8 +820,53 @@ document.addEventListener('DOMContentLoaded', () => {
     a.href = url;
     a.download = 'events_export.yaml';
     a.click();
+    
+    // Reset unsaved changes flag after export
+    hasUnsavedChanges = false;
+    updateModificationStatus();
+    
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
+  
+  // Export CSV
+  exportCsvBtn.addEventListener('click', () => {
+    // Prepare data the same way as YAML export
+    Object.keys(groupByCategory(events)).forEach(category => {
+      const categoryEvents = events.filter(e => (e.category || 'General') === category && e.type === 'range');
+      const sortedEvents = sortByDate(categoryEvents);
+      
+      sortedEvents.forEach(event => {
+        event.row = calculateEventRow(event, categoryEvents);
+      });
+    });
+    
+    // Convert to CSV format
+    const csv = eventsToCSV(events);
+    
+    // Download the CSV file
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'events_export.csv';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+  
+  // Handle PNG export
+  exportPngBtn.addEventListener('click', () => {
+    captureScreenshot();
+  });
+  
+  // PDF export removed
+  
+  // Backward compatibility for the old export button
+  if (exportButton) {
+    exportButton.addEventListener('click', () => {
+      // Just trigger the YAML export for compatibility
+      exportYamlBtn.click();
+    });
+  }
 
   // Load predefined events from data/events.yaml
   fetch('data/events.yaml')
@@ -784,6 +1146,10 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
     
+    // Mark as having unsaved changes after adding/editing an event
+    hasUnsavedChanges = true;
+    updateModificationStatus();
+    
     form.reset();
     colorInput.value = randomColor();
     submitBtn.textContent = 'Add Event';
@@ -948,6 +1314,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function deleteEvent(id) {
     if (confirm('Are you sure you want to delete this event?')) {
       events = events.filter(ev => ev.id !== id);
+      
+      // Mark as having unsaved changes
+      hasUnsavedChanges = true;
+      updateModificationStatus();
+      
       update();
     }
   }
