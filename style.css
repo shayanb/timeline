@@ -457,7 +457,7 @@ body {
   border-radius: 6px;
   font-size: 13px;
   max-width: 300px;
-  z-index: 100;
+  z-index: 1000; /* Ensure tooltip appears above milestone dots */
   opacity: 0;
   transition: opacity 0.2s ease;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -484,6 +484,7 @@ body {
   gap: 8px;
   opacity: 0;
   transition: opacity 0.2s ease;
+  z-index: 260; /* Ensure hover actions sit above milestone dots */
 }
 .timeline-event:hover .event-actions {
   opacity: 1;
@@ -524,38 +525,6 @@ body {
   font-weight: bold;
 }
 
-/* Milestone emoji styling */
-.milestone-emojis {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-left: auto;
-  z-index: 150; /* Very high z-index to ensure visibility above other elements */
-  position: relative;
-  pointer-events: auto !important; /* Ensure clicks are captured */
-}
-
-.milestone-emojis span {
-  cursor: pointer;
-  transition: transform 0.2s ease, filter 0.2s ease, background-color 0.2s ease;
-  display: inline-block;
-  font-size: 20px; /* Larger emojis for better visibility */
-  position: relative;
-  z-index: 150; /* Very high z-index to ensure visibility */
-  text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.7); /* Stronger shadow for better visibility */
-  padding: 4px; /* Larger padding to increase clickable area */
-  background-color: rgba(255, 255, 255, 0.2); /* Stronger background for better visibility */
-  border-radius: 4px;
-  box-shadow: 0 0 4px rgba(255, 255, 255, 0.3); /* Add glow effect for better visibility */
-}
-
-.milestone-emojis span:hover {
-  transform: scale(1.5); /* Larger scale for more obvious hover effect */
-  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 1)); /* Stronger glow effect */
-  background-color: rgba(255, 255, 255, 0.4); /* More prominent background on hover */
-  z-index: 200; /* Even higher z-index on hover */
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.6); /* Enhanced glow effect */
-}
 
 /* Timeline indicator for milestone positions */
 .milestone-timeline-indicator {
@@ -565,7 +534,7 @@ body {
 /* Shared styles for all milestone dots */
 .milestone-dot {
   position: absolute !important; /* Ensure absolute positioning */
-  z-index: 120; /* Higher z-index to make it more prominent */
+  z-index: 180; /* Raised above other timeline elements, below hover */
   box-shadow: 0 0 5px rgba(255, 255, 255, 0.9); /* Stronger glow */
   pointer-events: auto !important;
   cursor: pointer;
@@ -580,7 +549,7 @@ body {
 
 /* Style for standalone milestones (timeline-milestone class) */
 .timeline-milestone {
-  z-index: 150; /* Even higher z-index than parent milestone dots */
+  z-index: 200; /* Elevated above dots, below hover */
   box-shadow: 0 0 6px rgba(255, 255, 255, 1); /* Stronger glow for better visibility */
   width: 12px !important; /* Slightly larger than parent milestone dots */
   height: 12px !important;

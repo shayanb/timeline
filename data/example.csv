@@ -1,0 +1,34 @@
+id,title,start,end,type,metadata,color,category,categoryBgColor,location_city,location_country,parentId,row,isParent,isImportant
+,Graduated College,2019-05-15,,life,"Bachelor's in Computer Science",#4CAF50,academic,"rgba(76, 175, 80, 0.08)",Boston,United States,,,,
+,First Job,2019-07-01,,life,"Software Engineer at TechCorp",#2196F3,career,"rgba(33, 150, 243, 0.08)",New York,United States,,,,
+,Moved to San Francisco,2020-02-15,,life,"Relocated for new opportunity",#E91E63,family,"rgba(233, 30, 99, 0.08)",San Francisco,United States,,,,
+,Got Married,2021-06-25,,life,"Wedding ceremony in Napa Valley",#E91E63,family,"rgba(233, 30, 99, 0.08)",Napa Valley,United States,,,,
+,Bought First House,2022-03-10,,life,"Home ownership milestone",#9C27B0,family,"rgba(156, 39, 176, 0.08)",San Francisco,United States,,,,
+,Had First Child,2023-01-15,,life,"Welcome baby Emma!",#FF9800,family,"rgba(255, 152, 0, 0.08)",San Francisco,United States,,,,
+job-techcorp,Software Engineer at TechCorp,2021-01-01,2021-08-15,range,"First major product development project",#3F51B5,career,"rgba(63, 81, 181, 0.08)",San Francisco,United States,,0,true,true
+,Initial Research,2021-01-01,2021-02-28,range,"Market research and competitor analysis",#2196F3,career,"rgba(33, 150, 243, 0.08)",San Francisco,United States,job-techcorp,1,,
+,Design Sprint,2021-03-15,2021-03-19,range,"Product design workshop",#9C27B0,career,"rgba(156, 39, 176, 0.08)",San Francisco,United States,job-techcorp,1,,
+,MVP Development,2021-04-01,2021-06-30,range,"Building minimum viable product",#4CAF50,career,"rgba(76, 175, 80, 0.08)",San Francisco,United States,job-techcorp,1,,
+,Alpha Testing,2021-07-01,2021-08-15,range,"Internal testing phase",#FF9800,career,"rgba(255, 152, 0, 0.08)",San Francisco,United States,job-techcorp,1,,
+,Beta Launch,2021-09-01,,milestone,"Public beta release",#E91E63,career,"rgba(233, 30, 99, 0.08)",San Francisco,United States,,,false,
+,Version 1.0,2021-12-01,,milestone,"Official product launch",#2196F3,career,"rgba(33, 150, 243, 0.08)",San Francisco,United States,,,false,
+,Major Update 2.0,2022-06-15,,milestone,"Significant feature release",#4CAF50,career,"rgba(76, 175, 80, 0.08)",San Francisco,United States,,,false,
+,Company Founded,2018-01-01,,milestone,"Initial founding with 3 employees",#2196F3,career,"rgba(33, 150, 243, 0.08)",New York,United States,,,false,
+,Seed Funding,2018-06-15,,milestone,"Raised $500K seed round",#4CAF50,career,"rgba(76, 175, 80, 0.08)",New York,United States,,,false,
+,First Office,2018-08-31,2020-08-31,range,"First physical office space",#607D8B,career,"rgba(96, 125, 139, 0.08)",New York,United States,,,false,
+,Series A,2019-03-20,,milestone,"Raised $5M Series A",#4CAF50,career,"rgba(76, 175, 80, 0.08)",New York,United States,,,false,
+,100th Customer,2019-12-01,,milestone,"Major customer milestone",#E91E63,career,"rgba(233, 30, 99, 0.08)",New York,United States,,,false,
+international-expansion,International Expansion,2020-06-01,2020-12-31,range,"Opened offices in London and Singapore",#FF9800,career,"rgba(255, 152, 0, 0.08)",London,United Kingdom,,0,true,false
+singapore-office,Singapore Office,2020-07-15,2023-04-15,range,"Asia Pacific headquarters",#3F51B5,career,"rgba(63, 81, 181, 0.08)",Singapore,Singapore,,0,true,false
+,Tokyo Partnership,2022-02-01,2022-06-30,range,"Strategic partnership with Japanese firm",#009688,career,"rgba(0, 150, 136, 0.08)",Tokyo,Japan,,,false,
+,Berlin Conference,2022-09-10,2022-09-15,range,"International technology conference",#607D8B,academic,"rgba(96, 125, 139, 0.08)",Berlin,Germany,,,false,
+,IPO,2023-04-15,,milestone,"Listed on NYSE",#E91E63,career,"rgba(233, 30, 99, 0.08)",New York,United States,,,false,true
+world-tour,World Tour 2024,2024-01-01,2024-06-30,range,"Six-month global business development tour",#8E44AD,travel,"rgba(142, 68, 173, 0.08)",New York,United States,,0,true,true
+,US Tour,2024-01-01,2024-01-31,range,"East and West Coast client meetings",#3498DB,travel,"rgba(52, 152, 219, 0.08)",New York,United States,world-tour,1,,
+europe-leg,European Tour,2024-02-01,2024-03-31,range,"Major European cities for expansion",#16A085,travel,"rgba(22, 160, 133, 0.08)",London,United Kingdom,world-tour,1,true,
+,Asia Tour,2024-04-01,2024-05-31,range,"Asian market development",#E74C3C,travel,"rgba(231, 76, 60, 0.08)",Tokyo,Japan,world-tour,1,,
+,Berlin Tech Summit,2024-03-15,2024-03-20,range,"Major industry conference during European tour",#2ECC71,travel,"rgba(46, 204, 113, 0.08)",Berlin,Germany,europe-leg,2,,
+certification-program,Cloud Certification Program,2022-01-01,2022-06-30,range,"Professional development certification",#F39C12,education,"rgba(243, 156, 18, 0.08)",San Francisco,United States,,0,true,true
+,Leadership Training,2022-03-01,2022-05-15,range,"Executive leadership development program",#D35400,education,"rgba(211, 84, 0, 0.08)",Boston,United States,certification-program,1,,
+team-project-1,Product Redesign,2022-02-15,2022-04-30,range,"Major UI/UX redesign project",#27AE60,project,"rgba(39, 174, 96, 0.08)",San Francisco,United States,,0,true,true
+,Backend Migration,2022-01-15,2022-05-20,range,"Cloud infrastructure migration",#2980B9,project,"rgba(41, 128, 185, 0.08)",San Francisco,United States,team-project-1,1,,

@@ -1,6 +1,6 @@
 // Interactive Timeline Script
 // App configuration
-const APP_VERSION = '1.5.0';
+const APP_VERSION = '1.6.2';
 const COPYRIGHT = '© 2025 Timeline App';
 let hasUnsavedChanges = false;
 
@@ -417,25 +417,42 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Function to parse CSV
+  // Function to split a CSV line into fields, respecting quoted commas
+  function splitCSVLine(line) {
+    const values = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        inQuotes = !inQuotes;
+      } else if (char === ',' && !inQuotes) {
+        values.push(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    values.push(current);
+    return values.map(v => v.trim().replace(/^"|"$/g, ''));
+  }
+
+  // Function to parse CSV into objects
   function parseCSV(text) {
-    const lines = text.split(/\r?\n/);
-    const headers = lines[0].split(',').map(header => header.trim());
-    
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (!lines.length) return [];
+    const headers = splitCSVLine(lines[0]);
     const result = [];
     for (let i = 1; i < lines.length; i++) {
-      if (!lines[i].trim()) continue; // Skip empty lines
-      
-      const values = lines[i].split(',').map(val => val.trim());
+      const line = lines[i];
+      if (!line.trim()) continue;
+      const values = splitCSVLine(line);
       const obj = {};
-      
-      headers.forEach((header, index) => {
-        obj[header] = values[index] || '';
+      headers.forEach((header, idx) => {
+        obj[header] = values[idx] !== undefined ? values[idx] : '';
       });
-      
       result.push(obj);
     }
-    
     return result;
   }
   
@@ -508,13 +525,16 @@ document.addEventListener('DOMContentLoaded', () => {
           const end = (type === 'range') ? new Date(ev.end || ev.start) : new Date(ev.start);
           const color = ev.color || randomColor();
           const metadata = ev.metadata || '';
-          const category = ev.category || ev.parent || null;
+          // Only use explicit category; don't fall back to parent ID
+          const category = ev.category || null;
           const place = ev.place || null;
           const isImportant = !!ev.isImportant;
           const isParent = !!ev.isParent;
           const categoryBgColor = ev.categoryBgColor || null;
           // Convert row to number for range events (important for CSV imports where all values are strings)
           const row = ev.row !== undefined ? (ev.row === '' ? null : Number(ev.row)) : null;
+          // Track if this row came from imported data (custom) vs auto-assigned
+          const _customRow = row !== null;
           
           // Handle location data in various formats
           let location = null;
@@ -569,9 +589,20 @@ document.addEventListener('DOMContentLoaded', () => {
             isImportant,
             isParent,
             row,
+            _customRow,
             categoryBgColor,
+            // Raw parent identifier from CSV/YAML (string key)
             parentId: ev.parentId || null
           };
+        });
+        // Resolve raw parentId strings to numeric parent references
+        mappedEvents.forEach(evt => {
+          if (evt.parentId) {
+            const parent = mappedEvents.find(m => m.eventId === evt.parentId);
+            if (parent) {
+              evt.parent = parent.id;
+            }
+          }
         });
         
         // Second pass: Normalize row values within each category to avoid excessively tall timeline
@@ -703,7 +734,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         colorInput.value = randomColor();
       } catch (err) {
-        alert('Error parsing YAML: ' + err);
+        // More descriptive error message that indicates file type
+        const fileType = file.name.split('.').pop().toLowerCase();
+        alert(`Error parsing ${fileType.toUpperCase()}: ${err}`);
       }
     };
     reader.readAsText(file);
@@ -1260,9 +1293,15 @@ document.addEventListener('DOMContentLoaded', () => {
         ev.isParent = isParent;
         ev.location = location;
         
-        // Set custom row if provided (for range events only)
-        if (type === 'range' && customRow !== null) {
-          ev.row = customRow;
+        // Set custom row if provided (for range events only) and track custom flag
+        if (type === 'range') {
+          if (customRow !== null) {
+            ev.row = customRow;
+            ev._customRow = true;
+          } else {
+            // Clear custom row flag to allow auto-calculation if none provided
+            ev._customRow = false;
+          }
         }
         
         // Update eventId if provided
@@ -1302,7 +1341,9 @@ document.addEventListener('DOMContentLoaded', () => {
       
       // Add new event
       // Add row number if specified and valid for range events
+      // Determine row value and track if custom
       const rowValue = type === 'range' && customRow !== null ? customRow : null;
+      const _customRow = type === 'range' && customRow !== null;
       
       events.push({ 
         id: numericId,
@@ -1320,7 +1361,8 @@ document.addEventListener('DOMContentLoaded', () => {
         isParent,
         location,
         emoji, // Add custom emoji if specified
-        row: rowValue // Add the row number if provided (will be calculated during rendering if null)
+        row: rowValue, // Add the row number if provided (will be calculated during rendering if null)
+        _customRow
       });
     }
     
@@ -3120,7 +3162,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const sortedEvents = sortByDate(categoryEvents);
       
       sortedEvents.forEach(event => {
-        event.row = calculateEventRow(event, categoryEvents);
+        // Only auto-calculate rows for events without a custom row
+        if (!event._customRow) {
+          event.row = calculateEventRow(event, categoryEvents);
+        }
       });
     });
     
@@ -3179,8 +3224,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
     
-    // Create category rows
-    Object.keys(eventsByCategory).forEach((category, categoryIndex) => {
+    // Create category rows (sorted alphabetically for consistency)
+    const sortedCategories = Object.keys(eventsByCategory).sort();
+    sortedCategories.forEach((category, categoryIndex) => {
       const rowDiv = document.createElement('div');
       rowDiv.className = 'category-row';
       timelineDiv.appendChild(rowDiv);
@@ -3321,7 +3367,7 @@ document.addEventListener('DOMContentLoaded', () => {
             titleSpan.textContent = event.title;
             contentDiv.appendChild(titleSpan);
             
-            // Add milestone emojis for range events with milestone children
+            /* // Add milestone emojis for range events with milestone children
             if (parentToMilestones[event.id] && parentToMilestones[event.id].length > 0) {
               const milestoneEmojisContainer = document.createElement('div');
               milestoneEmojisContainer.className = 'milestone-emojis';
@@ -3448,7 +3494,7 @@ document.addEventListener('DOMContentLoaded', () => {
               });
               
               contentDiv.appendChild(milestoneEmojisContainer);
-            }
+            } */
             
             // Important indicator
             if (event.isImportant) {
@@ -3582,29 +3628,49 @@ document.addEventListener('DOMContentLoaded', () => {
           milestoneDot.setAttribute('data-milestone-title', event.title);
           milestoneDot.setAttribute('data-event-type', 'milestone');
           
-          // Use row property if defined, otherwise calculate it
+          // Determine appropriate row and vertical position
           if (event.row === undefined || event.row === null) {
-            event.row = calculateEventRow(event, eventsInCategory);
-            console.log(`Calculated row ${event.row} for milestone: ${event.title}`);
-          } else {
-            console.log(`Using defined row ${event.row} for milestone: ${event.title}`);
+            // Only auto-calculate if no explicit row
+            event.row = calculateEventRow(event, categoryEvents);
           }
+          let topPx;
+          if (event.parent) {
+            // Align with parent range event's bar top
+            const parentEv = events.find(e => e.id === event.parent);
+            if (parentEv) {
+              const parentOffset = (parentEv.row || 0) * 40;
+              topPx = (parentEv.isParent ? 2 : 8) + parentOffset;
+            } else {
+              const ownOffset = (event.row || 0) * 40;
+              topPx = 8 + ownOffset;
+            }
+          } else {
+            // No parent: align with regular range event bar
+            const ownOffset = (event.row || 0) * 40;
+            topPx = 8 + ownOffset;
+          }
+          milestoneDot.style.top = `${topPx}px`;
+          milestoneDot.style.bottom = 'auto';
           
-          // Calculate vertical position based on row
-          const rowOffset = event.row * 40; // 40px per row, matching range events
-          
-          // Position in the middle of the row
-          milestoneDot.style.top = `${rowOffset + 20}px`; // Middle of the row
-          milestoneDot.style.bottom = 'auto'; // Clear bottom positioning
-          // Transform is now handled by CSS to ensure consistency
-          
-          // Set colors and styling
+          // Set colors and baseline styling
           milestoneDot.style.backgroundColor = event.color;
           milestoneDot.style.zIndex = '150'; // High z-index for visibility
+          // If a custom emoji is set on this milestone, display it instead of the colored dot
+          if (event.emoji) {
+            milestoneDot.textContent = event.emoji;
+            milestoneDot.style.setProperty('width', 'auto', 'important');
+            milestoneDot.style.setProperty('height', 'auto', 'important');
+            milestoneDot.style.setProperty('font-size', '20px', 'important');
+            milestoneDot.style.backgroundColor = 'transparent';
+            milestoneDot.style.setProperty('border', 'none', 'important');
+            milestoneDot.style.color = event.color || 'inherit';
+          }
           
           // Set additional debug data attributes
           milestoneDot.setAttribute('data-row', event.row);
-          milestoneDot.setAttribute('data-row-offset', rowOffset);
+          // rowOffset not in scope for parent-aligned milestones; calculate explicitly
+          const rowOffsetVal = event.row * 40;
+          milestoneDot.setAttribute('data-row-offset', rowOffsetVal);
           
           // Format date string for tooltip
           const dateStr = new Date(event.start).toLocaleDateString(undefined, {
@@ -3657,7 +3723,7 @@ document.addEventListener('DOMContentLoaded', () => {
           // The milestone dot itself is clickable to edit
           
           // Add the milestone dot directly to the timeline area
-          console.log(`Rendering milestone dot: ${event.title}, left: ${leftPosition}%, top: ${rowOffset + 20}px`);
+          console.log(`Rendering milestone dot: ${event.title}, left: ${leftPosition}%, top: ${topPx}px`);
           timelineArea.appendChild(milestoneDot);
           
           // Optional: Enhanced tooltip functionality with D3
