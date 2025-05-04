@@ -25,13 +25,13 @@
       </div>
       <div class="right-controls">
         <div class="ui compact buttons">
-          <button type="button" id="import-btn" class="ui small compact labeled icon button">
+          <button type="button" id="import-btn" class="ui small compact icon button">
             <i class="upload icon"></i>
             Import
           </button>
           <div class="ui small compact floating dropdown icon button" id="export-dropdown">
             <i class="download icon"></i>
-            <span class="text">Export</span>
+            Export
             <div class="menu">
               <div class="item" id="export-yaml">YAML</div>
               <div class="item" id="export-csv">CSV</div>
@@ -165,6 +165,14 @@
           <div class="field">
             <label for="metadata">Notes</label>
             <input type="text" id="metadata" placeholder="Additional details">
+          </div>
+          <div class="field" id="emoji-field" style="display: none;">
+            <label for="custom-emoji" class="font-semibold">Custom Emoji 📱</label>
+            <input type="text" id="custom-emoji" placeholder="Enter an emoji (e.g., 🚀)" class="border-blue-400">
+            <div class="text-sm text-blue-500 mt-1 font-medium">
+              For milestones with range parents, this emoji will be shown on the parent range.
+              <br>Pick your favorite emoji to make it stand out!
+            </div>
           </div>
         </div>
         

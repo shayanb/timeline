@@ -4,6 +4,45 @@ const APP_VERSION = '1.5.0';
 const COPYRIGHT = '© 2025 Timeline App';
 let hasUnsavedChanges = false;
 
+// Milestone emoji configuration
+const MILESTONE_EMOJIS = {
+  default: '📍', // Default emoji for milestones
+  // Add specific emojis based on milestone title or category
+  // Format: 'keyword-in-lowercase': 'emoji'
+  proposal: '💍',
+  marriage: '💒',
+  graduation: '🎓',
+  convocation: '🎓',
+  defence: '🎯',
+  interview: '👥',
+  meeting: '🤝',
+  seminar: '🗣️',
+  workshop: '🔨',
+  submission: '📝',
+  submitted: '📝',
+  accepted: '✅',
+  completed: '🏆',
+  salary: '💰',
+  payment: '💵',
+  start: '🚀',
+  begin: '🚀',
+  finish: '🏁',
+  ended: '🏁',
+  visit: '🧳',
+  travel: '✈️',
+  conference: '🎤',
+  launch: '🚀',
+  birthday: '🎂',
+  anniversary: '🎉',
+  release: '📦',
+  award: '🏆',
+  certification: '📜',
+  promotion: '📈',
+  relocation: '🏠',
+  moved: '🏠',
+  office: '🏢'
+};
+
 // PNG export initialization
 if (typeof window !== 'undefined') {
   window.addEventListener('load', () => {
@@ -323,15 +362,40 @@ document.addEventListener('DOMContentLoaded', () => {
     return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
   }
 
-  // Toggle end-date field and row field based on event type
+  // Get emoji field reference
+  const emojiField = document.getElementById('emoji-field');
+  const customEmojiInput = document.getElementById('custom-emoji');
+  
+  // Toggle end-date field, row field, and emoji field based on event type
   typeInput.addEventListener('change', () => {
     // Show/hide end date field
     if (typeInput.value === 'range') {
       endInput.disabled = false;
       endInput.setAttribute('required', '');
       
-      // Show row field for range events only
+      // Show row field for range events
       rowField.style.display = 'block';
+      
+      // Hide emoji field for range events
+      emojiField.style.display = 'none';
+      
+      // Populate row dropdown options (current category from dropdown)
+      const currentCategory = categoryInput.value;
+      populateRowDropdown(currentCategory);
+      
+      // Initialize dropdown
+      if (window.$ && $.fn.dropdown) {
+        $(rowInput).dropdown('refresh');
+      }
+    } else if (typeInput.value === 'milestone') {
+      endInput.disabled = true;
+      endInput.removeAttribute('required');
+      
+      // Show row field for milestone events too (new feature)
+      rowField.style.display = 'block';
+      
+      // Show emoji field for milestone events
+      emojiField.style.display = 'block';
       
       // Populate row dropdown options (current category from dropdown)
       const currentCategory = categoryInput.value;
@@ -345,8 +409,11 @@ document.addEventListener('DOMContentLoaded', () => {
       endInput.disabled = true;
       endInput.removeAttribute('required');
       
-      // Hide row field for non-range events
+      // Hide row field for other event types
       rowField.style.display = 'none';
+      
+      // Hide emoji field for other event types
+      emojiField.style.display = 'none';
     }
   });
 
@@ -434,8 +501,8 @@ document.addEventListener('DOMContentLoaded', () => {
         hasUnsavedChanges = false;
         updateModificationStatus();
         
-        // Map imported events with properties
-        events = data.map(ev => {
+        // First pass: Map imported events with properties
+        const mappedEvents = data.map(ev => {
           const type = ev.type || (ev.life_event ? 'life' : 'range');
           const start = new Date(ev.start);
           const end = (type === 'range') ? new Date(ev.end || ev.start) : new Date(ev.start);
@@ -446,12 +513,21 @@ document.addEventListener('DOMContentLoaded', () => {
           const isImportant = !!ev.isImportant;
           const isParent = !!ev.isParent;
           const categoryBgColor = ev.categoryBgColor || null;
-          const row = ev.row !== undefined ? ev.row : null;
+          // Convert row to number for range events (important for CSV imports where all values are strings)
+          const row = ev.row !== undefined ? (ev.row === '' ? null : Number(ev.row)) : null;
           
           // Handle location data in various formats
           let location = null;
           
-          if (ev.location) {
+          // Handle separated location_city and location_country fields (CSV import format)
+          if (ev.location_city !== undefined || ev.location_country !== undefined) {
+            location = {
+              city: ev.location_city || '',
+              country: ev.location_country || ''
+            };
+          }
+          // Handle standard location object
+          else if (ev.location) {
             // Handle object location format
             if (typeof ev.location === 'object') {
               location = {
@@ -497,6 +573,94 @@ document.addEventListener('DOMContentLoaded', () => {
             parentId: ev.parentId || null
           };
         });
+        
+        // Second pass: Normalize row values within each category to avoid excessively tall timeline
+        // Group events by category
+        const eventsByCategory = {};
+        mappedEvents.forEach(event => {
+          if (event.type === 'range') {
+            const category = event.category || 'uncategorized';
+            if (!eventsByCategory[category]) {
+              eventsByCategory[category] = [];
+            }
+            eventsByCategory[category].push(event);
+          }
+        });
+        
+        // For each category, normalize row values
+        console.log("Normalizing rows by category to avoid tall timeline");
+        Object.keys(eventsByCategory).forEach(category => {
+          const categoryEvents = eventsByCategory[category];
+          console.log(`Category: ${category} has ${categoryEvents.length} range events`);
+          
+          // Sort events by start date
+          categoryEvents.sort((a, b) => a.start - b.start);
+          
+          // Calculate overlaps and assign efficient row values
+          const rows = [];
+          let maxRowAssigned = 0;
+          
+          categoryEvents.forEach(event => {
+            // Skip events with explicitly defined row values
+            if (event.row !== null && event.row !== undefined) {
+              console.log(`Event "${event.title}" has predefined row ${event.row}`);
+              // Track max row value to ensure we start from a higher value for auto-assignment
+              maxRowAssigned = Math.max(maxRowAssigned, event.row);
+              
+              // Make sure this event is tracked in our row assignment structure
+              const rowNum = Number(event.row);
+              if (!rows[rowNum]) {
+                rows[rowNum] = [];
+              }
+              rows[rowNum].push(event);
+              return;
+            }
+            
+            // Find the first row where this event doesn't overlap with any existing event
+            let rowIndex = 0;
+            let foundRow = false;
+            
+            while (!foundRow) {
+              foundRow = true;
+              
+              // Check if this event would overlap with any event already in this row
+              if (rows[rowIndex]) {
+                for (const existingEvent of rows[rowIndex]) {
+                  if (eventsOverlap(event, existingEvent)) {
+                    foundRow = false;
+                    break;
+                  }
+                }
+              } else {
+                // Create a new row if needed
+                rows[rowIndex] = [];
+              }
+              
+              if (foundRow) {
+                // Assign this row to the event
+                event.row = rowIndex;
+                rows[rowIndex].push(event);
+                console.log(`Assigned row ${rowIndex} to event "${event.title}"`);
+                maxRowAssigned = Math.max(maxRowAssigned, rowIndex);
+              } else {
+                // Try the next row
+                rowIndex++;
+              }
+            }
+          });
+          
+          console.log(`Category ${category} has events in ${rows.length} rows, max row is ${maxRowAssigned}`);
+          
+          // Log row distribution
+          rows.forEach((rowEvents, rowIndex) => {
+            if (rowEvents && rowEvents.length > 0) {
+              console.log(`Row ${rowIndex}: ${rowEvents.length} events - ${rowEvents.map(e => e.title).join(', ')}`);
+            }
+          });
+        });
+        
+        // Use the normalized events
+        events = mappedEvents;
         
         // Show import stats
         showImportStats(events, fileType);
@@ -558,8 +722,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (key === 'start' || key === 'end') {
           headers.add(key); // Use string format for dates
         } else if (key === 'location') {
-          headers.add('location.city');
-          headers.add('location.country');
+          headers.add('location_city');
+          headers.add('location_country');
         } else {
           headers.add(key);
         }
@@ -577,9 +741,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const row = headerArray.map(header => {
         if (header === 'start' || header === 'end') {
           return event[header] ? event[header].toISOString().slice(0, 10) : '';
-        } else if (header === 'location.city') {
+        } else if (header === 'location_city') {
           return event.location ? (event.location.city || '') : '';
-        } else if (header === 'location.country') {
+        } else if (header === 'location_country') {
           return event.location ? (event.location.country || '') : '';
         } else if (typeof event[header] === 'boolean') {
           return event[header] ? 'true' : 'false';
@@ -747,7 +911,7 @@ document.addEventListener('DOMContentLoaded', () => {
   exportYamlBtn.addEventListener('click', () => {
     // Update the state of all events by performing recalculations
     Object.keys(groupByCategory(events)).forEach(category => {
-      const categoryEvents = events.filter(e => (e.category || 'General') === category && e.type === 'range');
+      const categoryEvents = events.filter(e => (e.category || 'General') === category && (e.type === 'range' || e.type === 'milestone'));
       const sortedEvents = sortByDate(categoryEvents);
       
       sortedEvents.forEach(event => {
@@ -780,6 +944,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (d.metadata) ev.metadata = d.metadata;
       if (d.category) ev.category = d.category;
       if (d.categoryBgColor) ev.categoryBgColor = d.categoryBgColor;
+      
+      // Include custom emoji for milestone events
+      if (d.type === 'milestone' && d.emoji) {
+        ev.emoji = d.emoji;
+      }
       
       // Explicitly include boolean flags
       if (d.isImportant) ev.isImportant = true;
@@ -832,7 +1001,7 @@ document.addEventListener('DOMContentLoaded', () => {
   exportCsvBtn.addEventListener('click', () => {
     // Prepare data the same way as YAML export
     Object.keys(groupByCategory(events)).forEach(category => {
-      const categoryEvents = events.filter(e => (e.category || 'General') === category && e.type === 'range');
+      const categoryEvents = events.filter(e => (e.category || 'General') === category && (e.type === 'range' || e.type === 'milestone'));
       const sortedEvents = sortByDate(categoryEvents);
       
       sortedEvents.forEach(event => {
@@ -1002,6 +1171,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const type = typeInput.value;
     const end = (type === 'range') ? new Date(endInput.value) : new Date(startInput.value);
     const color = colorInput.value;
+    
+    // Get custom emoji for milestone events
+    let emoji = null;
+    if (type === 'milestone' && customEmojiInput.value.trim()) {
+      emoji = customEmojiInput.value.trim();
+      console.log(`Setting custom emoji: ${emoji} for event ${title}`);
+    }
+    
     const metadata = metadataInput.value.trim();
     
     // Get category from dropdown or hidden input
@@ -1016,9 +1193,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const isParent = isParentCheckbox.checked;
     const customEventId = eventIdInput.value.trim();
     
-    // Get custom row number if provided (for range events only)
+    // Get custom row number if provided (for range and milestone events)
     let customRow = null;
-    if (type === 'range' && rowInput.value !== '') {
+    if ((type === 'range' || type === 'milestone') && rowInput.value !== '') {
       customRow = parseInt(rowInput.value);
       // Make sure it's a valid number
       if (isNaN(customRow) || customRow < 0) {
@@ -1142,6 +1319,7 @@ document.addEventListener('DOMContentLoaded', () => {
         isImportant,
         isParent,
         location,
+        emoji, // Add custom emoji if specified
         row: rowValue // Add the row number if provided (will be calculated during rendering if null)
       });
     }
@@ -1188,6 +1366,41 @@ document.addEventListener('DOMContentLoaded', () => {
     colorInput.value = d.color;
     metadataInput.value = d.metadata || '';
     
+    // Handle custom emoji for milestone events
+    if (d.type === 'milestone') {
+      emojiField.style.display = 'block';
+      
+      // Determine the emoji value to show
+      let emojiValue = '';
+      if (d.emoji) {
+        // Use explicit emoji property if available
+        emojiValue = d.emoji;
+        console.log(`Using explicit emoji property: ${emojiValue}`);
+      } else if (d.metadata && d.metadata.includes('emoji:')) {
+        // Extract emoji from metadata if present
+        const emojiMatch = d.metadata.match(/emoji:([^\s]+)/);
+        if (emojiMatch && emojiMatch[1]) {
+          emojiValue = emojiMatch[1];
+          console.log(`Extracted emoji from metadata: ${emojiValue}`);
+        }
+      }
+      
+      // Set the input value
+      customEmojiInput.value = emojiValue;
+      console.log(`Editing milestone ${d.title}, emoji set to: ${emojiValue}`);
+      
+      // Make the emoji field more noticeable
+      customEmojiInput.style.borderColor = '#3b82f6';
+      customEmojiInput.style.backgroundColor = '#f0f7ff';
+      setTimeout(() => {
+        customEmojiInput.style.borderColor = '';
+        customEmojiInput.style.backgroundColor = '';
+      }, 2000); // Reset after 2 seconds
+    } else {
+      emojiField.style.display = 'none';
+      customEmojiInput.value = '';
+    }
+    
     // Update parent input
     parentInput.value = d.parent || '';
     eventIdInput.value = d.eventId || '';
@@ -1230,8 +1443,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Set row number if available
-    if (d.type === 'range') {
-      rowField.style.display = 'block'; // Show row field for range events
+    if (d.type === 'range' || d.type === 'milestone') {
+      rowField.style.display = 'block'; // Show row field for range and milestone events
       
       // Populate the row dropdown with options
       populateRowDropdown(d.category, d.row);
@@ -1248,7 +1461,7 @@ document.addEventListener('DOMContentLoaded', () => {
         $(rowInput).dropdown('refresh');
       }
     } else {
-      rowField.style.display = 'none'; // Hide row field for non-range events
+      rowField.style.display = 'none'; // Hide row field for other event types
     }
     
     // IMPORTANT: Always directly set the checkbox values before using Semantic UI
@@ -1473,20 +1686,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Check if two events overlap
   function eventsOverlap(event1, event2) {
+    console.log(`[OVERLAP DEBUG] Checking overlap between "${event1.title}" (${event1.type}) and "${event2.title}" (${event2.type})`);
+    
+    // Special handling for milestone events - treat them as point events
+    let event1Start = event1.start;
+    let event1End = event1.type === 'milestone' ? new Date(event1.start.getTime()) : event1.end;
+    
+    let event2Start = event2.start;
+    let event2End = event2.type === 'milestone' ? new Date(event2.start.getTime()) : event2.end;
+    
     // First ensure both event dates are valid
-    if (!(event1.start instanceof Date) || !(event1.end instanceof Date) ||
-        !(event2.start instanceof Date) || !(event2.end instanceof Date)) {
+    if (!(event1Start instanceof Date) || !(event1End instanceof Date) ||
+        !(event2Start instanceof Date) || !(event2End instanceof Date)) {
       console.error("Invalid date objects in eventsOverlap", event1, event2);
       return false; // Can't determine overlap with invalid dates
     }
     
     // Test Case: Skip self comparison to avoid bugs
     if (event1.id === event2.id) {
+      console.log(`[OVERLAP DEBUG] Self comparison, returning false`);
       return false;
     }
     
+    // Log the actual date ranges being compared
+    console.log(`[OVERLAP DEBUG] Event1: ${event1.title}, ${event1Start.toISOString().slice(0,10)} to ${event1End.toISOString().slice(0,10)}`);
+    console.log(`[OVERLAP DEBUG] Event2: ${event2.title}, ${event2Start.toISOString().slice(0,10)} to ${event2End.toISOString().slice(0,10)}`);
+    
     // Define what a true overlap is: one event starts before the other ends
-    const hasDateOverlap = event1.start <= event2.end && event2.start <= event1.end;
+    const hasDateOverlap = event1Start <= event2End && event2Start <= event1End;
+    console.log(`[OVERLAP DEBUG] Overlap result: ${hasDateOverlap}`);
     
     // Debug the event comparison
     const event1DateStr = `${event1.title} (${event1.start.toISOString().slice(0,10)} to ${event1.end.toISOString().slice(0,10)})`;
@@ -1501,17 +1729,73 @@ document.addEventListener('DOMContentLoaded', () => {
     return hasDateOverlap;
   }
 
-  // Calculate row for event to avoid overlaps
-  function calculateEventRow(event, eventsInCategory) {
-    // If the event already has a custom row defined, respect it
-    if (event.row !== undefined && event.row !== null) {
-      console.log(`Using custom row ${event.row} for event: ${event.title}`);
-      return event.row;
+  // Helper function to determine the appropriate emoji for a milestone
+  function getMilestoneEmoji(milestone) {
+    console.log("Getting emoji for milestone:", milestone.title);
+    console.log("Milestone data:", JSON.stringify(milestone, null, 2));
+    
+    // First check if the milestone has an explicit 'emoji' property
+    // This takes highest precedence
+    if (milestone.emoji) {
+      console.log(`Found explicit emoji property: ${milestone.emoji}`);
+      return milestone.emoji;
     }
     
-    if (!eventsInCategory || eventsInCategory.length === 0) return 0;
+    // Next check if the milestone has a custom emoji specified in its metadata
+    // Format in metadata field: "emoji:🚀 Some other notes..."
+    if (milestone.metadata && milestone.metadata.includes('emoji:')) {
+      const emojiMatch = milestone.metadata.match(/emoji:([^\s]+)/);
+      if (emojiMatch && emojiMatch[1]) {
+        console.log(`Found emoji in metadata: ${emojiMatch[1]}`);
+        return emojiMatch[1];
+      }
+    }
     
-    console.log(`Calculating row for: ${event.title}`);
+    // Check for category-based emoji
+    if (milestone.category && milestone.category.toLowerCase() in MILESTONE_EMOJIS) {
+      const categoryEmoji = MILESTONE_EMOJIS[milestone.category.toLowerCase()];
+      console.log(`Found emoji for category '${milestone.category}': ${categoryEmoji}`);
+      return categoryEmoji;
+    }
+    
+    const title = milestone.title.toLowerCase();
+    
+    // Check if any keywords in the emoji config match the title
+    for (const [keyword, emoji] of Object.entries(MILESTONE_EMOJIS)) {
+      if (keyword !== 'default' && title.includes(keyword)) {
+        console.log(`Found emoji for keyword '${keyword}': ${emoji}`);
+        return emoji;
+      }
+    }
+    
+    // If no match found, return the default emoji
+    console.log(`No emoji match found, using default: ${MILESTONE_EMOJIS.default}`);
+    return MILESTONE_EMOJIS.default || '📍'; // Fallback to 📍 if default is somehow missing
+  }
+  
+  // This function has been removed - all events use calculateEventRow directly
+  
+  // Calculate row for event to avoid overlaps
+  function calculateEventRow(event, eventsInCategory) {
+    // DEBUG: Log event type and check row property
+    console.log(`[ROW DEBUG] Calculating row for "${event.title}" (type: ${event.type})`);
+    console.log(`[ROW DEBUG] Raw row value: ${event.row}, type: ${typeof event.row}`);
+    
+    // If the event already has a custom row defined, respect it but ensure it's a number
+    if (event.row !== undefined && event.row !== null) {
+      // Make sure it's converted to a number (especially important for CSV imports where values are strings)
+      const rowNum = Number(event.row);
+      console.log(`[ROW DEBUG] Using custom row ${rowNum} for event: ${event.title} (${event.type})`);
+      return rowNum;
+    }
+    
+    if (!eventsInCategory || eventsInCategory.length === 0) {
+      console.log(`[ROW DEBUG] No events in category for ${event.title}, using row 0`);
+      return 0;
+    }
+    
+    console.log(`[ROW DEBUG] Need to calculate row for: ${event.title} (${event.type})`);
+    console.log(`[ROW DEBUG] Category events count: ${eventsInCategory.length}`);
     
     // First, sort events by start date to ensure consistent row allocation
     const sortedEvents = [...eventsInCategory].sort((a, b) => a.start - b.start);
@@ -1520,11 +1804,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const overlappingEvents = [];
     
     for (const otherEvent of sortedEvents) {
-      // Skip self or non-range events
-      if (otherEvent.id === event.id || otherEvent.type !== 'range') continue;
+      // Skip self events
+      if (otherEvent.id === event.id) continue;
+      
+      // IMPORTANT: Changed to allow milestone events to be considered for overlap
+      // Only skip if the event is not a range or milestone (e.g., life events)
+      if (otherEvent.type !== 'range' && otherEvent.type !== 'milestone') {
+        console.log(`[ROW DEBUG] Skipping non-range, non-milestone event: ${otherEvent.title} (${otherEvent.type})`);
+        continue;
+      }
+      
+      // Debug overlap check
+      console.log(`[ROW DEBUG] Checking overlap: "${event.title}" vs "${otherEvent.title}"`);
       
       // Check if the other event's date range truly overlaps with this event
       if (eventsOverlap(event, otherEvent)) {
+        console.log(`[ROW DEBUG] Found overlap between "${event.title}" and "${otherEvent.title}"`);
         overlappingEvents.push(otherEvent);
       }
     }
@@ -1539,8 +1834,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const occupiedRows = new Set();
     overlappingEvents.forEach(e => {
       if (e.row !== undefined && e.row !== null) {
-        occupiedRows.add(e.row);
-        console.log(`Event: ${e.title} occupies row ${e.row}`);
+        // Convert to number to ensure consistent type comparison (especially for CSV imports)
+        const rowNum = Number(e.row);
+        occupiedRows.add(rowNum);
+        console.log(`Event: ${e.title} occupies row ${rowNum}`);
       }
     });
     
@@ -2682,6 +2979,60 @@ document.addEventListener('DOMContentLoaded', () => {
       existingLabelsContainer.remove();
     }
     
+    // Create a map of parent range events to their milestone children
+    const parentToMilestones = {};
+    
+    // Debug milestone data
+    console.log("All events before processing:", events.map(e => ({
+      id: e.id,
+      title: e.title,
+      type: e.type,
+      parent: e.parent,
+      emoji: e.emoji
+    })));
+    
+    // Identify milestones with range parents
+    events.forEach(event => {
+      if (event.type === 'milestone' && event.parent) {
+        // Find the parent event
+        const parentEvent = events.find(e => e.id === event.parent);
+        if (parentEvent && parentEvent.type === 'range') {
+          if (!parentToMilestones[parentEvent.id]) {
+            parentToMilestones[parentEvent.id] = [];
+          }
+          parentToMilestones[parentEvent.id].push(event);
+          console.log(`Added milestone '${event.title}' to parent '${parentEvent.title}'`);
+          console.log(`Milestone emoji value: ${event.emoji}`);
+        } else {
+          console.log(`Warning: Milestone '${event.title}' has parent ID ${event.parent} but parent not found or not a range event`);
+        }
+      }
+    });
+    
+    // Debug parent-to-milestone mapping after processing
+    console.log("Parent-to-milestone mapping:", Object.keys(parentToMilestones).map(parentId => {
+      const parent = events.find(e => e.id === parseInt(parentId));
+      return {
+        parentId,
+        parentTitle: parent ? parent.title : 'Unknown Parent',
+        milestones: parentToMilestones[parentId].map(m => m.title)
+      };
+    }));
+    
+    // Debug milestone placement in same row as parents
+    console.log("Milestones using parent rows:", events
+      .filter(e => e.type === 'milestone' && e.parent)
+      .map(m => {
+        const parent = events.find(e => e.id === m.parent);
+        return {
+          id: m.id,
+          title: m.title,
+          parentId: m.parent,
+          parentTitle: parent ? parent.title : 'Unknown',
+          parentType: parent ? parent.type : 'Unknown'
+        };
+      }));
+    
     // Find timeline date range
     const minTime = d3.min(events, d => d.start);
     const maxTime = d3.max(events, d => d.end);
@@ -2765,7 +3116,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Calculate row positions for range events in each category
     Object.keys(eventsByCategory).forEach(category => {
-      const categoryEvents = eventsByCategory[category].filter(e => e.type === 'range');
+      const categoryEvents = eventsByCategory[category].filter(e => e.type === 'range' || e.type === 'milestone');
       const sortedEvents = sortByDate(categoryEvents);
       
       sortedEvents.forEach(event => {
@@ -2936,8 +3287,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Ensure width is at least 0.5% for visibility
             eventDiv.style.width = `${width}%`;
             
-            // Add debug information as data attributes
+            // Add debug information and event ID as data attributes
             eventDiv.setAttribute('data-start', validStart.toISOString());
+            eventDiv.setAttribute('data-event-id', event.id); // Add event ID for milestone parent relations
             eventDiv.setAttribute('data-end', validEnd.toISOString());
             eventDiv.setAttribute('data-left', leftPosition);
             eventDiv.setAttribute('data-width', width);
@@ -2968,6 +3320,135 @@ document.addEventListener('DOMContentLoaded', () => {
             titleSpan.className = 'event-title';
             titleSpan.textContent = event.title;
             contentDiv.appendChild(titleSpan);
+            
+            // Add milestone emojis for range events with milestone children
+            if (parentToMilestones[event.id] && parentToMilestones[event.id].length > 0) {
+              const milestoneEmojisContainer = document.createElement('div');
+              milestoneEmojisContainer.className = 'milestone-emojis';
+              milestoneEmojisContainer.style.display = 'flex';
+              milestoneEmojisContainer.style.marginLeft = 'auto';
+              milestoneEmojisContainer.style.marginRight = '4px';
+              milestoneEmojisContainer.style.gap = '3px';
+              
+              // Sort milestones by date before adding emojis
+              const sortedMilestones = [...parentToMilestones[event.id]].sort((a, b) => a.start - b.start);
+              
+              // Calculate total width for positioning
+              const eventStartPosition = calculatePosition(event.start, startDate, endDate);
+              const eventEndPosition = calculatePosition(event.end, startDate, endDate);
+              const eventWidth = eventEndPosition - eventStartPosition;
+              
+              // Create a container for milestone dots (visual timeline)
+              const timelineIndicator = document.createElement('div');
+              timelineIndicator.className = 'milestone-timeline-indicator';
+              timelineIndicator.style.position = 'absolute';
+              timelineIndicator.style.bottom = '3px';
+              timelineIndicator.style.left = '5%';
+              timelineIndicator.style.right = '5%';
+              timelineIndicator.style.height = '3px';
+              timelineIndicator.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+              timelineIndicator.style.borderRadius = '2px';
+              timelineIndicator.style.pointerEvents = 'none';
+              eventDiv.appendChild(timelineIndicator);
+              
+              // Add emoji for each milestone
+              sortedMilestones.forEach(milestone => {
+                const emojiSpan = document.createElement('span');
+                const emojiToUse = getMilestoneEmoji(milestone);
+                console.log(`Using emoji ${emojiToUse} for milestone ${milestone.title}`);
+                
+                // Make sure we have a valid emoji, with fallback
+                if (!emojiToUse || emojiToUse === 'undefined' || emojiToUse === 'null') {
+                  console.warn(`Invalid emoji for milestone ${milestone.title}, using default`);
+                  emojiSpan.textContent = MILESTONE_EMOJIS.default || '📍';
+                } else {
+                  emojiSpan.textContent = emojiToUse;
+                }
+                
+                emojiSpan.setAttribute('data-milestone-id', milestone.id);
+                
+                // Format the date for the tooltip
+                const dateStr = new Date(milestone.start).toLocaleDateString(undefined, {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric'
+                });
+                
+                emojiSpan.title = `${milestone.title} (${dateStr})`;
+                emojiSpan.style.cursor = 'pointer';
+                
+                // Add a data attribute for debugging
+                emojiSpan.setAttribute('data-milestone-title', milestone.title);
+                
+                // Additional styling for better visibility
+                emojiSpan.style.userSelect = 'none'; // Prevent text selection on double click
+                
+                // Add position indicator for this milestone on the timeline
+                if (milestone.start >= event.start && milestone.start <= event.end) {
+                  const relativePosition = (milestone.start - event.start) / (event.end - event.start);
+                  const percentPosition = relativePosition * 100;
+                  
+                  const milestoneIndicator = document.createElement('div');
+                  milestoneIndicator.className = 'milestone-dot';
+                  milestoneIndicator.style.position = 'absolute';
+                  milestoneIndicator.style.bottom = '2px';
+                  milestoneIndicator.style.left = `calc(5% + ${percentPosition * 0.9}%)`;
+                  
+                  // Size and appearance controlled by CSS now
+                  milestoneIndicator.style.transform = 'translateX(-50%)';
+                  
+                  // Add data attributes for debugging and functionality
+                  milestoneIndicator.setAttribute('data-milestone-id', milestone.id);
+                  milestoneIndicator.setAttribute('data-milestone-title', milestone.title);
+
+                  // Make indicator clickable and show tooltip
+                  milestoneIndicator.title = `${milestone.title} (${dateStr})`;
+                  
+                  // Add click handler to open the milestone's edit form
+                  milestoneIndicator.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    console.log(`Milestone dot clicked for: ${milestone.title}`);
+                    editEvent(milestone);
+                  });
+                  
+                  // Add this milestoneIndicator to the event div
+                  eventDiv.appendChild(milestoneIndicator);
+                }
+                
+                // Add enhanced hover effect - hover effects now primarily controlled by CSS
+                emojiSpan.addEventListener('mouseenter', () => {
+                  console.log(`Hovering over emoji for milestone: ${milestone.title}`);
+                  // Highlight the corresponding milestone dot if it exists
+                  const dots = eventDiv.querySelectorAll(`.milestone-dot[data-milestone-id="${milestone.id}"]`);
+                  dots.forEach(dot => {
+                    dot.style.backgroundColor = '#ffff00';
+                    dot.style.transform = 'translateX(-50%) scale(2)';
+                    dot.style.boxShadow = '0 0 8px rgba(255, 255, 255, 1), 0 0 12px rgba(255, 255, 255, 0.6)';
+                  });
+                });
+                
+                emojiSpan.addEventListener('mouseleave', () => {
+                  // Reset the milestone dot styling
+                  const dots = eventDiv.querySelectorAll(`.milestone-dot[data-milestone-id="${milestone.id}"]`);
+                  dots.forEach(dot => {
+                    dot.style.backgroundColor = '';
+                    dot.style.transform = 'translateX(-50%)';
+                    dot.style.boxShadow = '';
+                  });
+                });
+                
+                // Add click handler to open the milestone's edit form
+                emojiSpan.addEventListener('click', (e) => {
+                  e.stopPropagation();
+                  console.log(`Emoji clicked for milestone: ${milestone.title}`);
+                  editEvent(milestone);
+                });
+                
+                milestoneEmojisContainer.appendChild(emojiSpan);
+              });
+              
+              contentDiv.appendChild(milestoneEmojisContainer);
+            }
             
             // Important indicator
             if (event.isImportant) {
@@ -3060,6 +3541,27 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (event.type === 'life') {
           // Store life events to add them later across all categories - nothing to render here
         } else if (event.type === 'milestone') {
+          // Milestones are now displayed based on their row property
+          console.log(`[MILESTONE RENDER] Rendering milestone: ${event.title}, row: ${event.row}, category: ${event.category}`);
+          
+          // Debug log the event details
+          console.log(`[MILESTONE RENDER] Details:`, {
+            id: event.id,
+            title: event.title,
+            row: event.row,
+            rowType: typeof event.row,
+            category: event.category,
+            start: event.start,
+            emoji: event.emoji
+          });
+          
+          // Check if this milestone is within the visible timeframe
+          if (event.start < startDate || event.start > endDate) {
+            console.log(`[MILESTONE RENDER] Warning: Milestone "${event.title}" is outside visible timeframe (${startDate.toISOString().slice(0, 10)} to ${endDate.toISOString().slice(0, 10)})`);
+          }
+          
+          // Keep parent property for data relationships, but don't use it for positioning
+          
           // Calculate valid position
           if (isNaN(event.start.getTime())) {
             console.error("Invalid date for milestone:", event.title, event.start);
@@ -3069,108 +3571,131 @@ document.addEventListener('DOMContentLoaded', () => {
           // Calculate position for milestone - ensure it's properly placed on the timeline
           leftPosition = calculatePosition(event.start, startDate, endDate);
           
-          // Create container for milestone and its actions - positioned at the bottom of the row
-          const milestoneContainer = document.createElement('div');
-          milestoneContainer.className = 'milestone-container';
-          milestoneContainer.style.position = 'absolute';
-          milestoneContainer.style.left = `${leftPosition}%`;
-          milestoneContainer.style.bottom = '5px'; // Position at the bottom of the row
-          milestoneContainer.style.transform = 'translateX(-50%)'; // Center the milestone on the exact date
-          milestoneContainer.style.zIndex = '5';
-          milestoneContainer.style.cursor = 'pointer';
-          milestoneContainer.style.display = 'flex'; // Force display flex
+          // Create a milestone dot indicator (similar to the milestone-dot used for parent events)
+          const milestoneDot = document.createElement('div');
+          milestoneDot.className = 'milestone-dot timeline-milestone'; // Add specific class for styling
+          milestoneDot.style.position = 'absolute';
+          milestoneDot.style.left = `${leftPosition}%`;
           
-          // Create the milestone marker
-          const markerDiv = document.createElement('div');
-          markerDiv.className = 'milestone-marker';
-          markerDiv.style.backgroundColor = event.color;
-          markerDiv.style.display = 'block'; // Force display block
-          milestoneContainer.appendChild(markerDiv);
+          // Add identifying data for this milestone
+          milestoneDot.setAttribute('data-milestone-id', event.id);
+          milestoneDot.setAttribute('data-milestone-title', event.title);
+          milestoneDot.setAttribute('data-event-type', 'milestone');
           
-          // Create action buttons container
-          const actionsDiv = document.createElement('div');
-          actionsDiv.className = 'milestone-actions';
-          milestoneContainer.appendChild(actionsDiv);
+          // Use row property if defined, otherwise calculate it
+          if (event.row === undefined || event.row === null) {
+            event.row = calculateEventRow(event, eventsInCategory);
+            console.log(`Calculated row ${event.row} for milestone: ${event.title}`);
+          } else {
+            console.log(`Using defined row ${event.row} for milestone: ${event.title}`);
+          }
           
-          // Add edit button
-          const editBtn = document.createElement('button');
-          editBtn.className = 'action-button edit-button';
-          editBtn.innerHTML = '✎';
-          editBtn.title = 'Edit';
-          editBtn.addEventListener('click', (e) => {
+          // Calculate vertical position based on row
+          const rowOffset = event.row * 40; // 40px per row, matching range events
+          
+          // Position in the middle of the row
+          milestoneDot.style.top = `${rowOffset + 20}px`; // Middle of the row
+          milestoneDot.style.bottom = 'auto'; // Clear bottom positioning
+          // Transform is now handled by CSS to ensure consistency
+          
+          // Set colors and styling
+          milestoneDot.style.backgroundColor = event.color;
+          milestoneDot.style.zIndex = '150'; // High z-index for visibility
+          
+          // Set additional debug data attributes
+          milestoneDot.setAttribute('data-row', event.row);
+          milestoneDot.setAttribute('data-row-offset', rowOffset);
+          
+          // Format date string for tooltip
+          const dateStr = new Date(event.start).toLocaleDateString(undefined, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          });
+          
+          // Basic tooltip with title and date
+          let tooltipContent = `${event.title} (${dateStr})`;
+          
+          // Add location to tooltip if available
+          if (event.location) {
+            if (typeof event.location === 'object') {
+              const location = [];
+              if (event.location.city) location.push(event.location.city);
+              if (event.location.country) location.push(event.location.country);
+              if (location.length > 0) {
+                tooltipContent += `\nLocation: ${location.join(', ')}`;
+              }
+            } else if (typeof event.location === 'string') {
+              tooltipContent += `\nLocation: ${event.location}`;
+            }
+          }
+          
+          // Set tooltip content
+          milestoneDot.title = tooltipContent;
+          
+          // Custom tooltip handling could be added here if needed
+          
+          // Add click handler for editing
+          milestoneDot.addEventListener('click', (e) => {
             e.stopPropagation();
-            e.preventDefault();
+            console.log(`Milestone dot clicked: ${event.title}`);
             editEvent(event);
           });
-          actionsDiv.appendChild(editBtn);
           
-          // We're removing the delete button from the chart as requested
-          // and only keeping it in the edit form
-          
-          // Add container to timeline
-          timelineArea.appendChild(milestoneContainer);
-          
-          // Click handler for the milestone - with the same approach as the event click handler
-          milestoneContainer.addEventListener('mousedown', (e) => {
-            // Store the starting point to determine if this is a click or a drag
-            const startX = e.clientX;
-            const startY = e.clientY;
-            let hasMoved = false;
-            
-            // Create a function to handle the mouse up event
-            const handleMouseUp = (upEvent) => {
-              // Calculate distance moved
-              const deltaX = Math.abs(upEvent.clientX - startX);
-              const deltaY = Math.abs(upEvent.clientY - startY);
-              
-              // Only process as a click if it was a small movement
-              if (!hasMoved && deltaX < 5 && deltaY < 5) {
-                // This is a click, so edit the event
-                editEvent(d); // Use the event data "d" instead of the DOM event "event"
-              }
-              
-              // Clean up event listeners
-              document.removeEventListener('mousemove', handleMouseMove);
-              document.removeEventListener('mouseup', handleMouseUp);
-            };
-            
-            // Function to detect movement
-            const handleMouseMove = () => {
-              hasMoved = true;
-            };
-            
-            // Listen for mouse move and up events
-            document.addEventListener('mousemove', handleMouseMove);
-            document.addEventListener('mouseup', handleMouseUp);
-            
-            // Prevent default to avoid text selection, etc.
-            e.preventDefault();
+          // Add hover effects for better visibility
+          milestoneDot.addEventListener('mouseenter', () => {
+            console.log(`Hovering on milestone: ${event.title}`);
+            milestoneDot.style.zIndex = '200'; // Raise z-index on hover
+            // The rest of the hover styling is handled by CSS
           });
           
-          // Tooltip for milestone
-          milestoneContainer.addEventListener('mouseenter', () => {
-            tooltip
-              .style('opacity', 1)
-              .style('display', 'block')
-              .html(`
-                <div class="font-medium">${event.title}</div>
-                <div>${formatDate(event.start)}</div>
-                ${event.metadata ? `<div class="text-gray-300 mt-1">${event.metadata}</div>` : ''}
-              `);
+          milestoneDot.addEventListener('mouseleave', () => {
+            milestoneDot.style.zIndex = '150'; // Reset z-index
           });
           
-          markerDiv.addEventListener('mousemove', (e) => {
-            tooltip
-              .style('left', `${e.pageX + 10}px`)
-              .style('top', `${e.pageY + 10}px`);
-          });
+          // We don't need action buttons with the simplified dot approach
+          // The milestone dot itself is clickable to edit
           
-          markerDiv.addEventListener('mouseleave', () => {
-            tooltip.style('opacity', 0);
-          });
+          // Add the milestone dot directly to the timeline area
+          console.log(`Rendering milestone dot: ${event.title}, left: ${leftPosition}%, top: ${rowOffset + 20}px`);
+          timelineArea.appendChild(milestoneDot);
+          
+          // Optional: Enhanced tooltip functionality with D3
+          // Check if we have D3 and tooltip initialized
+          if (window.d3 && tooltip) {
+            // Show enhanced tooltip on hover
+            milestoneDot.addEventListener('mouseenter', (e) => {
+              tooltip
+                .style('opacity', 1)
+                .style('display', 'block')
+                .html(`
+                  <div class="font-medium">${event.title}</div>
+                  <div>${new Date(event.start).toLocaleDateString(undefined, {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                  })}</div>
+                  ${event.metadata ? `<div class="text-gray-300 mt-1">${event.metadata}</div>` : ''}
+                  ${event.location ? `<div class="text-gray-300">${typeof event.location === 'object' ? 
+                    [event.location.city, event.location.country].filter(Boolean).join(', ') : 
+                    event.location}</div>` : ''}
+                `);
+            });
+            
+            // Update tooltip position on mouse move
+            milestoneDot.addEventListener('mousemove', (e) => {
+              tooltip
+                .style('left', `${e.pageX + 15}px`) // Offset slightly from cursor
+                .style('top', `${e.pageY + 15}px`);
+            });
+            
+            // Hide tooltip on mouse leave
+            milestoneDot.addEventListener('mouseleave', () => {
+              tooltip.style('opacity', 0);
+            });
+          }
         }
       });
-      
       // Set minimum height for this category row based on number of event rows
       const maxRow = Math.max(0, ...categoryEvents.filter(e => e.type === 'range').map(e => e.row));
       const minHeight = Math.max(56, (maxRow + 1) * 40 + 16); // Base height + rows + padding
