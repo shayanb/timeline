@@ -4,44 +4,8 @@ const APP_VERSION = '1.6.2';
 const COPYRIGHT = '© 2025 Timeline App';
 let hasUnsavedChanges = false;
 
-// Milestone emoji configuration
-const MILESTONE_EMOJIS = {
-  default: '📍', // Default emoji for milestones
-  // Add specific emojis based on milestone title or category
-  // Format: 'keyword-in-lowercase': 'emoji'
-  proposal: '💍',
-  marriage: '💒',
-  graduation: '🎓',
-  convocation: '🎓',
-  defence: '🎯',
-  interview: '👥',
-  meeting: '🤝',
-  seminar: '🗣️',
-  workshop: '🔨',
-  submission: '📝',
-  submitted: '📝',
-  accepted: '✅',
-  completed: '🏆',
-  salary: '💰',
-  payment: '💵',
-  start: '🚀',
-  begin: '🚀',
-  finish: '🏁',
-  ended: '🏁',
-  visit: '🧳',
-  travel: '✈️',
-  conference: '🎤',
-  launch: '🚀',
-  birthday: '🎂',
-  anniversary: '🎉',
-  release: '📦',
-  award: '🏆',
-  certification: '📜',
-  promotion: '📈',
-  relocation: '🏠',
-  moved: '🏠',
-  office: '🏢'
-};
+// Milestone default emoji
+const DEFAULT_MILESTONE_EMOJI = '📍';
 
 // PNG export initialization
 if (typeof window !== 'undefined') {
@@ -130,7 +94,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Refresh the dropdown
-        $('#category-dropdown').dropdown('refresh');
+        try {
+          $('#category-dropdown').dropdown('refresh');
+        } catch (e) {
+          console.error('Error refreshing category dropdown:', e);
+        }
       }
     }
   }
@@ -380,12 +348,53 @@ document.addEventListener('DOMContentLoaded', () => {
     return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
   }
 
-  // Get emoji field reference
-  const emojiField = document.getElementById('emoji-field');
-  const customEmojiInput = document.getElementById('custom-emoji');
+  // Emoji field removed
   
-  // Toggle end-date field, row field, and emoji field based on event type
+  // Toggle end-date field and row field based on event type
   // Add change event listener for parent dropdown
+  // Initialize Semantic UI dropdown for parent field
+  if (window.$ && $.fn.dropdown) {
+    try {
+      $('#parent-event').dropdown({
+        onChange: function(value) {
+          // Handle parent selection change
+          const selectedParent = value;
+          
+          // Show/hide remove parent button based on selection
+          if (selectedParent) {
+            removeParentBtn.style.display = 'block';
+          } else {
+            removeParentBtn.style.display = 'none';
+          }
+          
+          // Only enable important checkbox if no parent is selected
+          if (importantCheckbox) {
+            importantCheckbox.disabled = !!selectedParent;
+            if (selectedParent) {
+              importantCheckbox.checked = false;
+              
+              // Update Semantic UI checkbox if available
+              if (window.$ && $.fn.checkbox) {
+                try {
+                  $('#important').checkbox('uncheck');
+                } catch (e) {
+                  console.error('Error updating important checkbox:', e);
+                }
+              }
+            }
+          }
+          
+          // Update modification status
+          hasUnsavedChanges = true;
+          updateModificationStatus();
+        }
+      });
+    } catch (e) {
+      console.error('Error initializing parent dropdown:', e);
+    }
+  }
+  
+  // Fallback for non-Semantic UI environments
   parentInput.addEventListener('change', () => {
     const selectedParent = parentInput.value;
     
@@ -418,16 +427,17 @@ document.addEventListener('DOMContentLoaded', () => {
       // Show row field for range events
       rowField.style.display = 'block';
       
-      // Hide emoji field for range events
-      emojiField.style.display = 'none';
-      
       // Populate row dropdown options (current category from dropdown)
       const currentCategory = categoryInput.value;
       populateRowDropdown(currentCategory);
       
       // Initialize dropdown
       if (window.$ && $.fn.dropdown) {
-        $(rowInput).dropdown('refresh');
+        try {
+          $(rowInput).dropdown('refresh');
+        } catch (e) {
+          console.error('Error refreshing row dropdown:', e);
+        }
       }
     } else if (typeInput.value === 'milestone') {
       endInput.disabled = true;
@@ -436,16 +446,17 @@ document.addEventListener('DOMContentLoaded', () => {
       // Show row field for milestone events too (new feature)
       rowField.style.display = 'block';
       
-      // Show emoji field for milestone events
-      emojiField.style.display = 'block';
-      
       // Populate row dropdown options (current category from dropdown)
       const currentCategory = categoryInput.value;
       populateRowDropdown(currentCategory);
       
       // Initialize dropdown
       if (window.$ && $.fn.dropdown) {
-        $(rowInput).dropdown('refresh');
+        try {
+          $(rowInput).dropdown('refresh');
+        } catch (e) {
+          console.error('Error refreshing row dropdown:', e);
+        }
       }
     } else {
       endInput.disabled = true;
@@ -1252,12 +1263,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const end = (type === 'range') ? new Date(endInput.value) : new Date(startInput.value);
     const color = colorInput.value;
     
-    // Get custom emoji for milestone events
-    let emoji = null;
-    if (type === 'milestone' && customEmojiInput.value.trim()) {
-      emoji = customEmojiInput.value.trim();
-      console.log(`Setting custom emoji: ${emoji} for event ${title}`);
-    }
+    // No longer using custom emoji
     
     const metadata = metadataInput.value.trim();
     
@@ -1435,6 +1441,9 @@ document.addEventListener('DOMContentLoaded', () => {
     editingId = d.id;
     formTitle.textContent = 'Edit Event';
     
+    // Show form immediately
+    showForm();
+    
     titleInput.value = d.title;
     startInput.value = d.start.toISOString().slice(0,10);
     
@@ -1455,50 +1464,47 @@ document.addEventListener('DOMContentLoaded', () => {
     colorInput.value = d.color;
     metadataInput.value = d.metadata || '';
     
-    // Handle custom emoji for milestone events
-    if (d.type === 'milestone') {
-      emojiField.style.display = 'block';
-      
-      // Determine the emoji value to show
-      let emojiValue = '';
-      if (d.emoji) {
-        // Use explicit emoji property if available
-        emojiValue = d.emoji;
-        console.log(`Using explicit emoji property: ${emojiValue}`);
-      } else if (d.metadata && d.metadata.includes('emoji:')) {
-        // Extract emoji from metadata if present
-        const emojiMatch = d.metadata.match(/emoji:([^\s]+)/);
-        if (emojiMatch && emojiMatch[1]) {
-          emojiValue = emojiMatch[1];
-          console.log(`Extracted emoji from metadata: ${emojiValue}`);
-        }
-      }
-      
-      // Set the input value
-      customEmojiInput.value = emojiValue;
-      console.log(`Editing milestone ${d.title}, emoji set to: ${emojiValue}`);
-      
-      // Make the emoji field more noticeable
-      customEmojiInput.style.borderColor = '#3b82f6';
-      customEmojiInput.style.backgroundColor = '#f0f7ff';
-      setTimeout(() => {
-        customEmojiInput.style.borderColor = '';
-        customEmojiInput.style.backgroundColor = '';
-      }, 2000); // Reset after 2 seconds
-    } else {
-      emojiField.style.display = 'none';
-      customEmojiInput.value = '';
-    }
+    // No emoji field needed anymore (removed)
     
-    // Update parent input
-    parentInput.value = d.parent || '';
+    // Update parent input and event ID input
     eventIdInput.value = d.eventId || '';
     
-    // Show/hide remove parent button based on whether a parent is selected
-    if (d.parent) {
-      removeParentBtn.style.display = 'block';
+    // Update parent event dropdown
+    if (window.$ && $.fn.dropdown) {
+      try {
+        // First refresh the parent dropdown to ensure it's initialized
+        $('#parent-event').dropdown('refresh');
+        
+        // Now set the selected value if we have a parent
+        if (d.parent) {
+          $('#parent-event').dropdown('set selected', d.parent);
+          removeParentBtn.style.display = 'block';
+        } else {
+          $('#parent-event').dropdown('clear');
+          removeParentBtn.style.display = 'none';
+        }
+      } catch (e) {
+        console.error('Error updating parent dropdown:', e);
+        // Fallback to direct value setting
+        parentInput.value = d.parent || '';
+        
+        // Show/hide remove parent button based on whether a parent is selected
+        if (d.parent) {
+          removeParentBtn.style.display = 'block';
+        } else {
+          removeParentBtn.style.display = 'none';
+        }
+      }
     } else {
-      removeParentBtn.style.display = 'none';
+      // Fallback for when jQuery is not available
+      parentInput.value = d.parent || '';
+      
+      // Show/hide remove parent button based on whether a parent is selected
+      if (d.parent) {
+        removeParentBtn.style.display = 'block';
+      } else {
+        removeParentBtn.style.display = 'none';
+      }
     }
     
     // Populate categories from existing ones
@@ -1506,24 +1512,38 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Set category using Semantic UI dropdown
     if (window.$ && $.fn.dropdown) {
-      if (d.category) {
-        $('#category-dropdown').dropdown('set selected', d.category);
-      } else {
-        $('#category-dropdown').dropdown('clear');
-      }
-      
-      // Set location data using Semantic UI dropdown for country
-      if (d.location) {
-        cityInput.value = d.location.city || '';
-        
-        if (d.location.country) {
-          $('#country-dropdown').dropdown('set selected', d.location.country);
+      try {
+        if (d.category) {
+          $('#category-dropdown').dropdown('set selected', d.category);
         } else {
+          $('#category-dropdown').dropdown('clear');
+        }
+        
+        // Set location data using Semantic UI dropdown for country
+        if (d.location) {
+          cityInput.value = d.location.city || '';
+          
+          if (d.location.country) {
+            $('#country-dropdown').dropdown('set selected', d.location.country);
+          } else {
+            $('#country-dropdown').dropdown('clear');
+          }
+        } else {
+          cityInput.value = '';
           $('#country-dropdown').dropdown('clear');
         }
-      } else {
-        cityInput.value = '';
-        $('#country-dropdown').dropdown('clear');
+      } catch (e) {
+        console.error('Error setting dropdown values:', e);
+        // Fallback if dropdown function fails
+        categoryInput.value = d.category || '';
+        
+        if (d.location) {
+          cityInput.value = d.location.city || '';
+          countryInput.value = d.location.country || '';
+        } else {
+          cityInput.value = '';
+          countryInput.value = '';
+        }
       }
     } else {
       // Fallback if jQuery is not available
@@ -1567,27 +1587,36 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Now also set them with Semantic UI if available
     if (window.$ && $.fn.checkbox) {
-      // Force a refresh of the checkbox components
-      $('.ui.checkbox').checkbox('refresh');
-      
-      // Important checkbox
-      if (d.isImportant) {
-        $('#important').checkbox('check');
-      } else {
-        $('#important').checkbox('uncheck');
-      }
-      
-      // Parent event checkbox
-      if (d.isParent) {
-        $('#is-parent').checkbox('check');
-      } else {
-        $('#is-parent').checkbox('uncheck');
-      }
-      
-      // Force a refresh again after setting values
-      setTimeout(function() {
+      try {
+        // Force a refresh of the checkbox components
         $('.ui.checkbox').checkbox('refresh');
-      }, 50);
+        
+        // Important checkbox
+        if (d.isImportant) {
+          $('#important').checkbox('check');
+        } else {
+          $('#important').checkbox('uncheck');
+        }
+        
+        // Parent event checkbox
+        if (d.isParent) {
+          $('#is-parent').checkbox('check');
+        } else {
+          $('#is-parent').checkbox('uncheck');
+        }
+        
+        // Force a refresh again after setting values
+        setTimeout(function() {
+          try {
+            $('.ui.checkbox').checkbox('refresh');
+          } catch (e) {
+            console.error('Error refreshing checkboxes:', e);
+          }
+        }, 50);
+      } catch (e) {
+        console.error('Error setting checkbox values:', e);
+        // Fallback is already handled with direct checkbox setting above
+      }
     }
     
     // Add delete button in the delete button container
@@ -1614,8 +1643,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     submitBtn.textContent = 'Update Event';
     
-    // Show form for editing
-    showForm();
+    // Form is already shown at the beginning of the function
     formContainer.scrollIntoView({ behavior: 'smooth' });
   }
 
@@ -1825,48 +1853,10 @@ document.addEventListener('DOMContentLoaded', () => {
     return hasDateOverlap;
   }
 
-  // Helper function to determine the appropriate emoji for a milestone
+  // Helper function to determine the emoji for a milestone
   function getMilestoneEmoji(milestone) {
-    console.log("Getting emoji for milestone:", milestone.title);
-    console.log("Milestone data:", JSON.stringify(milestone, null, 2));
-    
-    // First check if the milestone has an explicit 'emoji' property
-    // This takes highest precedence
-    if (milestone.emoji) {
-      console.log(`Found explicit emoji property: ${milestone.emoji}`);
-      return milestone.emoji;
-    }
-    
-    // Next check if the milestone has a custom emoji specified in its metadata
-    // Format in metadata field: "emoji:🚀 Some other notes..."
-    if (milestone.metadata && milestone.metadata.includes('emoji:')) {
-      const emojiMatch = milestone.metadata.match(/emoji:([^\s]+)/);
-      if (emojiMatch && emojiMatch[1]) {
-        console.log(`Found emoji in metadata: ${emojiMatch[1]}`);
-        return emojiMatch[1];
-      }
-    }
-    
-    // Check for category-based emoji
-    if (milestone.category && milestone.category.toLowerCase() in MILESTONE_EMOJIS) {
-      const categoryEmoji = MILESTONE_EMOJIS[milestone.category.toLowerCase()];
-      console.log(`Found emoji for category '${milestone.category}': ${categoryEmoji}`);
-      return categoryEmoji;
-    }
-    
-    const title = milestone.title.toLowerCase();
-    
-    // Check if any keywords in the emoji config match the title
-    for (const [keyword, emoji] of Object.entries(MILESTONE_EMOJIS)) {
-      if (keyword !== 'default' && title.includes(keyword)) {
-        console.log(`Found emoji for keyword '${keyword}': ${emoji}`);
-        return emoji;
-      }
-    }
-    
-    // If no match found, return the default emoji
-    console.log(`No emoji match found, using default: ${MILESTONE_EMOJIS.default}`);
-    return MILESTONE_EMOJIS.default || '📍'; // Fallback to 📍 if default is somehow missing
+    // Simplified function - always return the default emoji
+    return DEFAULT_MILESTONE_EMOJI;
   }
   
   // This function has been removed - all events use calculateEventRow directly
@@ -3062,8 +3052,45 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Main rendering function
+  // Function to update parent dropdown with available parent events
+  function updateParentDropdown() {
+    if (!parentInput) return;
+    
+    // Clear current options except the "None" option
+    parentInput.innerHTML = '<option value="">None</option>';
+    
+    // Find all potential parents - range events that are marked as parent or that don't have a parent themselves
+    const potentialParents = events.filter(ev => 
+      ev.type === 'range' && (ev.isParent || !ev.parent)
+    );
+    
+    // Add options sorted alphabetically
+    potentialParents.sort((a, b) => a.title.localeCompare(b.title)).forEach(ev => {
+      const opt = document.createElement('option');
+      opt.value = ev.id;
+      opt.textContent = ev.title;
+      if (ev.isParent) {
+        opt.textContent += ' (Parent)';
+        opt.style.fontWeight = 'bold';
+      }
+      parentInput.appendChild(opt);
+    });
+    
+    // Refresh the dropdown if using Semantic UI
+    if (window.$ && $.fn.dropdown) {
+      try {
+        $('#parent-event').dropdown('refresh');
+      } catch (e) {
+        console.error('Error refreshing parent dropdown:', e);
+      }
+    }
+  }
+
   function update() {
     if (!events.length) return;
+    
+    // Update parent dropdown when updating the timeline
+    updateParentDropdown();
     
     // Clear timeline and remove any existing life label containers
     d3.select(timelineDiv).selectAll('*').remove();
@@ -3190,22 +3217,8 @@ document.addEventListener('DOMContentLoaded', () => {
       categoryInput.appendChild(opt);
     });
     
-    // Update parent event dropdown - only show parent events or potential parents
-    parentInput.innerHTML = '<option value="">None</option>';
-    const potentialParents = events.filter(ev => 
-      ev.type === 'range' && (ev.isParent || !ev.parent)
-    );
-    
-    potentialParents.sort((a, b) => a.title.localeCompare(b.title)).forEach(ev => {
-      const opt = document.createElement('option');
-      opt.value = ev.id;
-      opt.textContent = ev.title;
-      if (ev.isParent) {
-        opt.textContent += ' (Parent)';
-        opt.style.fontWeight = 'bold';
-      }
-      parentInput.appendChild(opt);
-    });
+    // Update parent event dropdown using the dedicated function
+    updateParentDropdown();
     
     // Group events by category
     const eventsByCategory = groupByCategory(events);
@@ -3454,16 +3467,8 @@ document.addEventListener('DOMContentLoaded', () => {
               // Add emoji for each milestone
               sortedMilestones.forEach(milestone => {
                 const emojiSpan = document.createElement('span');
-                const emojiToUse = getMilestoneEmoji(milestone);
-                console.log(`Using emoji ${emojiToUse} for milestone ${milestone.title}`);
-                
-                // Make sure we have a valid emoji, with fallback
-                if (!emojiToUse || emojiToUse === 'undefined' || emojiToUse === 'null') {
-                  console.warn(`Invalid emoji for milestone ${milestone.title}, using default`);
-                  emojiSpan.textContent = MILESTONE_EMOJIS.default || '📍';
-                } else {
-                  emojiSpan.textContent = emojiToUse;
-                }
+                // Use default emoji for all milestones
+                emojiSpan.textContent = DEFAULT_MILESTONE_EMOJI;
                 
                 emojiSpan.setAttribute('data-milestone-id', milestone.id);
                 
