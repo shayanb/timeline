@@ -11,13 +11,13 @@ body {
   right: -320px;
   top: 80px;
   width: 300px;
+  z-index: 2000;
   max-height: calc(100vh - 100px);
   overflow-y: auto;
   overflow-x: hidden;
   opacity: 0;
   transition: right 0.3s ease, opacity 0.3s ease;
   border-left: 4px solid #3b82f6;
-  z-index: 1000;
   background-color: white;
   box-shadow: -3px 0 15px rgba(0, 0, 0, 0.1);
   border-radius: 8px 0 0 8px;
@@ -25,6 +25,7 @@ body {
 #form-container.open {
   right: 0;
   opacity: 1;
+  z-index: 2000;
 }
 
 /* Improve form styling */
@@ -33,20 +34,11 @@ body {
   gap: 0.75rem;
 }
 
-#event-form .ui.segment {
-  padding: 0.625rem !important;
-  border: 1px solid #e5e7eb !important;
-  box-shadow: none !important;
-  border-radius: 6px !important;
-  width: 100% !important;
-  box-sizing: border-box !important;
-}
+/* Removed segment styling */
 
-#event-form h4 {
-  margin-bottom: 0.5rem !important;
-  color: #4b5563 !important;
-  border-bottom: 1px solid #f3f4f6 !important;
-  padding-bottom: 0.5rem !important;
+/* Simplified form without section headers */
+#event-form {
+  padding: 0.5rem !important;
 }
 
 #event-form .field label {
@@ -706,7 +698,7 @@ body {
 
 #export-dropdown.ui.dropdown {
   position: relative;
-  z-index: 9000;
+  z-index: 1000;
 }
 
 /* Fix alignment between icon and text in buttons */

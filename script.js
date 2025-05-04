@@ -118,6 +118,17 @@ document.addEventListener('DOMContentLoaded', () => {
           categoryMenu.appendChild(item);
         });
         
+        // Set up parent removal button event handler
+        if (removeParentBtn) {
+          removeParentBtn.onclick = function() {
+            parentInput.value = '';
+            removeParentBtn.style.display = 'none';
+            // Mark as modified
+            hasUnsavedChanges = true;
+            updateModificationStatus();
+          };
+        }
+        
         // Refresh the dropdown
         $('#category-dropdown').dropdown('refresh');
       }
@@ -339,6 +350,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let editingId = null;
   const submitBtn = document.getElementById('submit-btn');
   const cancelBtn = document.getElementById('cancel-btn');
+  const removeParentBtn = document.getElementById('remove-parent-btn');
   
   // Get the close button
   const closeFormBtn = document.getElementById('close-form-btn');
@@ -354,6 +366,12 @@ document.addEventListener('DOMContentLoaded', () => {
     form.reset();
     submitBtn.textContent = 'Add Event';
     typeInput.dispatchEvent(new Event('change'));
+    
+    // Hide the remove parent button when canceling
+    if (removeParentBtn) {
+      removeParentBtn.style.display = 'none';
+    }
+    
     hideForm();
   });
 
@@ -367,6 +385,30 @@ document.addEventListener('DOMContentLoaded', () => {
   const customEmojiInput = document.getElementById('custom-emoji');
   
   // Toggle end-date field, row field, and emoji field based on event type
+  // Add change event listener for parent dropdown
+  parentInput.addEventListener('change', () => {
+    const selectedParent = parentInput.value;
+    
+    // Show/hide remove parent button based on selection
+    if (selectedParent) {
+      removeParentBtn.style.display = 'block';
+    } else {
+      removeParentBtn.style.display = 'none';
+    }
+    
+    // Only enable important checkbox if no parent is selected
+    if (importantCheckbox) {
+      importantCheckbox.disabled = !!selectedParent;
+      if (selectedParent) {
+        importantCheckbox.checked = false;
+      }
+    }
+    
+    // Update modification status
+    hasUnsavedChanges = true;
+    updateModificationStatus();
+  });
+  
   typeInput.addEventListener('change', () => {
     // Show/hide end date field
     if (typeInput.value === 'range') {
@@ -512,6 +554,11 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (!Array.isArray(data)) {
           throw new Error('Imported data must be an array of events');
+        }
+        
+        // Reset the parent removal button to ensure proper state
+        if (removeParentBtn) {
+          removeParentBtn.style.display = 'none';
         }
         
         // Reset the modified flag for new imports
@@ -1446,6 +1493,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update parent input
     parentInput.value = d.parent || '';
     eventIdInput.value = d.eventId || '';
+    
+    // Show/hide remove parent button based on whether a parent is selected
+    if (d.parent) {
+      removeParentBtn.style.display = 'block';
+    } else {
+      removeParentBtn.style.display = 'none';
+    }
     
     // Populate categories from existing ones
     populateCategories();

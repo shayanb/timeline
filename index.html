@@ -57,79 +57,76 @@
       </div>
       
       <form id="event-form" class="ui form">
-        <!-- Basic Info Group -->
-        <div class="ui segment p-3 mb-3">
-          <h4 class="text-sm font-medium text-gray-600 mb-2">Basic Info</h4>
+        <!-- Minimalist form with no section boxes -->
+        <div class="field">
+          <label for="title">Title</label>
+          <input type="text" id="title" placeholder="Title" required>
+        </div>
+        
+        <div class="two fields">
           <div class="field">
-            <label for="title">Title</label>
-            <input type="text" id="title" placeholder="Title" required>
+            <label for="start-date">Start Date</label>
+            <input type="date" id="start-date" required>
           </div>
-          
-          <div class="two fields">
-            <div class="field">
-              <label for="start-date">Start Date</label>
-              <input type="date" id="start-date" required>
-            </div>
-            <div class="field">
-              <label for="end-date">End Date</label>
-              <input type="date" id="end-date" required>
-            </div>
+          <div class="field">
+            <label for="end-date">End Date</label>
+            <input type="date" id="end-date" required>
           </div>
-          
-          <div class="two fields">
-            <div class="field">
-              <label for="event-type">Type</label>
-              <select id="event-type" class="ui dropdown">
-                <option value="range">Range Event</option>
-                <option value="life">Life Event</option>
-                <option value="milestone">Milestone</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="category">Category</label>
-              <div class="ui search selection dropdown" id="category-dropdown">
-                <input type="hidden" id="category">
-                <i class="dropdown icon"></i>
-                <div class="default text">Category</div>
-                <div class="menu" id="category-menu">
-                  <div class="item" data-value="">None</div>
-                </div>
+        </div>
+        
+        <div class="two fields">
+          <div class="field">
+            <label for="event-type">Type</label>
+            <select id="event-type" class="ui dropdown">
+              <option value="range">Range Event</option>
+              <option value="life">Life Event</option>
+              <option value="milestone">Milestone</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="category">Category</label>
+            <div class="ui search selection dropdown" id="category-dropdown">
+              <input type="hidden" id="category">
+              <i class="dropdown icon"></i>
+              <div class="default text">Category</div>
+              <div class="menu" id="category-menu">
+                <div class="item" data-value="">None</div>
               </div>
             </div>
           </div>
         </div>
         
-        <!-- Appearance Group -->
-        <div class="ui segment p-3 mb-3">
-          <h4 class="text-sm font-medium text-gray-600 mb-2">Appearance</h4>
-          <div class="two fields">
-            <div class="field">
-              <label for="color">Color</label>
-              <input type="color" id="color" value="#1f77b4">
-            </div>
-            <div class="field" id="row-field" style="display: none;">
-              <label for="event-row">Row</label>
-              <select id="event-row" class="ui compact dropdown">
-                <!-- Options will be populated by JavaScript -->
-              </select>
-            </div>
-          </div>
+        <div class="two fields">
           <div class="field">
-            <div class="ui checkbox">
-              <input type="checkbox" id="important">
-              <label for="important">Mark as important</label>
-            </div>
+            <label for="color">Color</label>
+            <input type="color" id="color" value="#1f77b4">
+          </div>
+          <div class="field" id="row-field" style="display: none;">
+            <label for="event-row">Row</label>
+            <select id="event-row" class="ui compact dropdown">
+              <!-- Options will be populated by JavaScript -->
+            </select>
           </div>
         </div>
         
-        <!-- Relationships Group -->
-        <div class="ui segment p-3 mb-3">
-          <h4 class="text-sm font-medium text-gray-600 mb-2">Relationships</h4>
+        <div class="field">
+          <div class="ui checkbox">
+            <input type="checkbox" id="important">
+            <label for="important">Mark as important</label>
+          </div>
+        </div>
+        
+        <div class="two fields">
           <div class="field">
             <label for="parent-event">Parent Event</label>
-            <select id="parent-event" class="ui compact dropdown">
-              <option value="">None</option>
-            </select>
+            <div class="ui action input">
+              <select id="parent-event" class="ui compact dropdown">
+                <option value="">None</option>
+              </select>
+              <button type="button" id="remove-parent-btn" class="ui mini icon button" style="display: none;">
+                <i class="x icon"></i>
+              </button>
+            </div>
           </div>
           <div class="field">
             <div class="ui checkbox">
@@ -137,46 +134,40 @@
               <label for="is-parent">Mark as parent event</label>
             </div>
           </div>
-          <div class="field">
-            <label for="event-id">Event ID</label>
-            <input type="text" id="event-id" placeholder="unique-id">
-          </div>
         </div>
         
-        <!-- Location Group -->
-        <div class="ui segment p-3 mb-3">
-          <h4 class="text-sm font-medium text-gray-600 mb-2">Location</h4>
-          <div class="two fields">
-            <div class="field">
-              <label for="city">City</label>
-              <input type="text" id="city" placeholder="City">
-            </div>
-            <div class="field">
-              <label for="country">Country</label>
-              <div class="ui search selection dropdown" id="country-dropdown">
-                <input type="hidden" id="country">
-                <i class="dropdown icon"></i>
-                <div class="default text">Country</div>
-                <div class="menu" id="country-menu"></div>
-              </div>
+        <div class="field">
+          <label for="event-id">Event ID</label>
+          <input type="text" id="event-id" placeholder="unique-id">
+        </div>
+        
+        <div class="two fields">
+          <div class="field">
+            <label for="city">City</label>
+            <input type="text" id="city" placeholder="City">
+          </div>
+          <div class="field">
+            <label for="country">Country</label>
+            <div class="ui search selection dropdown" id="country-dropdown">
+              <input type="hidden" id="country">
+              <i class="dropdown icon"></i>
+              <div class="default text">Country</div>
+              <div class="menu" id="country-menu"></div>
             </div>
           </div>
         </div>
         
-        <!-- Notes Group -->
-        <div class="ui segment p-3 mb-3">
-          <h4 class="text-sm font-medium text-gray-600 mb-2">Additional Info</h4>
-          <div class="field">
-            <label for="metadata">Notes</label>
-            <input type="text" id="metadata" placeholder="Additional details">
-          </div>
-          <div class="field" id="emoji-field" style="display: none;">
-            <label for="custom-emoji" class="font-semibold">Custom Emoji 📱</label>
-            <input type="text" id="custom-emoji" placeholder="Enter an emoji (e.g., 🚀)" class="border-blue-400">
-            <div class="text-sm text-blue-500 mt-1 font-medium">
-              For milestones with range parents, this emoji will be shown on the parent range.
-              <br>Pick your favorite emoji to make it stand out!
-            </div>
+        <div class="field">
+          <label for="metadata">Notes</label>
+          <input type="text" id="metadata" placeholder="Additional details">
+        </div>
+        
+        <div class="field" id="emoji-field" style="display: none;">
+          <label for="custom-emoji" class="font-semibold">Custom Emoji 📱</label>
+          <input type="text" id="custom-emoji" placeholder="Enter an emoji (e.g., 🚀)" class="border-blue-400">
+          <div class="text-sm text-blue-500 mt-1 font-medium">
+            For milestones with range parents, this emoji will be shown on the parent range.
+            <br>Pick your favorite emoji to make it stand out!
           </div>
         </div>
         
