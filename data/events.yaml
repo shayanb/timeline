@@ -9,6 +9,54 @@
     city: "Boston"
     country: "United States"
 
+# PhD program with related milestones
+- id: "phd-program"
+  title: "PhD Program"
+  start: "2021-09-01"
+  end: "2025-06-30"
+  type: "range"
+  metadata: "Doctoral research program"
+  color: "#8E44AD"
+  category: "academic"
+  isParent: true
+  row: 0
+  location:
+    city: "Cambridge"
+    country: "United States"
+
+- title: "Proposal Defense"
+  start: "2023-03-15"
+  type: "milestone"
+  metadata: "Proposal successfully defended"
+  color: "#8E44AD"
+  category: "academic"
+  parentId: "phd-program"
+  location:
+    city: "Cambridge"
+    country: "United States"
+
+- title: "PhD Defense"
+  start: "2025-05-15"
+  type: "milestone"
+  metadata: "Doctoral defense completed"
+  color: "#8E44AD"
+  category: "academic"
+  parentId: "phd-program"
+  location:
+    city: "Cambridge"
+    country: "United States"
+
+- title: "Graduation Ceremony"
+  start: "2025-06-30"
+  type: "milestone"
+  metadata: "Awarded PhD degree"
+  color: "#8E44AD"
+  category: "academic"
+  parentId: "phd-program"
+  location:
+    city: "Cambridge"
+    country: "United States"
+
 - title: "First Job"
   start: "2019-07-01"
   type: "life"

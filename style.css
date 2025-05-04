@@ -443,47 +443,9 @@ body {
   opacity: 1;
 }
 
-.milestone-container {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  z-index: 15;
-}
+/* Milestone styling is now handled by the milestone-dot class */
 
-.milestone-marker {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  z-index: 5;
-  cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.milestone-container:hover .milestone-marker {
-  transform: scale(1.2);
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
-}
-
-/* Special styling for milestone event actions */
-.milestone-actions {
-  position: absolute;
-  background-color: rgba(255, 255, 255, 0.9);
-  border-radius: 12px;
-  padding: 3px;
-  display: none;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  top: -25px;
-  left: 0;
-  z-index: 25;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.milestone-container:hover .milestone-actions {
-  display: flex;
-}
+/* Actions are now handled directly by clicking on the milestone dot */
 
 /* Tooltip */
 .tooltip, .chart-tooltip, .map-tooltip {
@@ -495,7 +457,7 @@ body {
   border-radius: 6px;
   font-size: 13px;
   max-width: 300px;
-  z-index: 100;
+  z-index: 1000; /* Ensure tooltip appears above milestone dots */
   opacity: 0;
   transition: opacity 0.2s ease;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
@@ -522,29 +484,92 @@ body {
   gap: 8px;
   opacity: 0;
   transition: opacity 0.2s ease;
+  z-index: 260; /* Ensure hover actions sit above milestone dots */
 }
 .timeline-event:hover .event-actions {
   opacity: 1;
 }
 .action-button {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background-color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
+
 .action-button:hover {
   background-color: #f3f4f6;
+  transform: translateY(-2px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
 }
+
+.action-button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
 .edit-button {
-  color: #4b5563;
+  color: #3b82f6; /* Blue for edit */
+  font-weight: bold;
 }
+
 .delete-button {
-  color: #ef4444;
+  color: #ef4444; /* Red for delete */
+  font-weight: bold;
+}
+
+
+/* Timeline indicator for milestone positions */
+.milestone-timeline-indicator {
+  z-index: 5;
+}
+
+/* Shared styles for all milestone dots */
+.milestone-dot {
+  position: absolute !important; /* Ensure absolute positioning */
+  z-index: 180; /* Raised above other timeline elements, below hover */
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.9); /* Stronger glow */
+  pointer-events: auto !important;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  width: 10px !important; /* Ensure width overrides inline styling */
+  height: 10px !important; /* Ensure height overrides inline styling */
+  border-radius: 50% !important; /* Ensure it's always a circle */
+  border: 2px solid white !important; /* White border for visibility */
+  /* Center the dot */
+  transform: translateX(-50%) !important;
+}
+
+/* Style for standalone milestones (timeline-milestone class) */
+.timeline-milestone {
+  z-index: 200; /* Elevated above dots, below hover */
+  box-shadow: 0 0 6px rgba(255, 255, 255, 1); /* Stronger glow for better visibility */
+  width: 12px !important; /* Slightly larger than parent milestone dots */
+  height: 12px !important;
+  border: 2px solid rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Hover effects for milestone dots */
+.milestone-dot:hover {
+  transform: translateX(-50%) scale(2) !important; /* Larger scale for more obvious hover while maintaining centering */
+  box-shadow: 0 0 8px rgba(255, 255, 255, 1), 0 0 12px rgba(255, 255, 255, 0.6); /* Double glow effect */
+  background-color: #ffff00 !important; /* Bright color on hover */
+  z-index: 250 !important; /* Even higher z-index on hover */
+}
+
+/* Specific hover effect for timeline milestones */
+.timeline-milestone:hover {
+  transform: translateX(-50%) scale(1.8) !important; /* Slightly different scale for standalone milestones */
+  box-shadow: 0 0 10px rgba(255, 255, 255, 1), 0 0 16px rgba(255, 255, 255, 0.7) !important; /* Enhanced glow */
+  border-color: white !important;
+  z-index: 250 !important; /* Ensure it's above everything else */
 }
 
 /* Import/Export buttons styling */
@@ -597,6 +622,25 @@ body {
   }
   .right-controls, .left-controls {
     width: 100%;
+    justify-content: center;
+  }
+  
+  /* Make buttons more mobile-friendly */
+  .ui.compact.buttons {
+    display: flex;
+    justify-content: center;
+  }
+}
+
+/* Extra small devices */
+@media (max-width: 480px) {
+  .ui.compact.buttons {
+    width: 100%;
+  }
+  
+  #modification-status.ui.small.yellow.label {
+    margin-left: 0.5em !important;
+    vertical-align: middle !important;
   }
 }
 
@@ -621,15 +665,25 @@ body {
 }
 
 /* Import/export button fixes */
-.ui.compact.buttons .button {
+.ui.compact.buttons .button,
+.ui.compact.buttons .dropdown {
   padding: 0.6em 1em !important;
   height: auto !important;
+  min-height: 2.4em !important;
   line-height: 1 !important;
+  min-width: 6em !important;
 }
 
-.ui.small.button, .ui.small.buttons .button {
+.ui.small.button, .ui.small.buttons .button,
+.ui.small.buttons .dropdown.button {
   font-size: 0.85rem !important;
-  min-height: 2.2em !important;
+}
+
+/* Fix consistent spacing for icons */
+.ui.icon.button > .icon,
+.ui.icon.buttons .button > .icon {
+  margin: 0 0.4em 0 0 !important;
+  vertical-align: middle !important;
 }
 
 /* Modification status styling in the button area */

@@ -3,7 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Interactive Timeline</title>
+  <title>⏳ Interactive Timeline</title>
+  <!-- Minimal emoji favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text x='0' y='14' font-size='16'>⏳</text></svg>">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
   <link rel="stylesheet" href="style.css">
@@ -11,7 +13,9 @@
 <body class="bg-gray-50">
   <div id="app" class="container mx-auto px-4 py-8 max-w-7xl">
     <header class="bg-white p-4 rounded-md shadow-sm mb-6">
-      <h1 class="text-2xl font-bold text-center text-gray-800">Interactive Timeline</h1>
+      <h1 class="text-2xl font-bold text-center text-gray-800">
+        <span class="inline-block mr-2">⏳</span>Interactive Timeline
+      </h1>
       <div id="timeline-header" class="flex justify-center mt-2">
         <div id="current-month-display" class="text-lg font-medium text-gray-600"></div>
       </div>
@@ -25,13 +29,13 @@
       </div>
       <div class="right-controls">
         <div class="ui compact buttons">
-          <button type="button" id="import-btn" class="ui small compact labeled icon button">
+          <button type="button" id="import-btn" class="ui small compact icon button">
             <i class="upload icon"></i>
             Import
           </button>
           <div class="ui small compact floating dropdown icon button" id="export-dropdown">
             <i class="download icon"></i>
-            <span class="text">Export</span>
+            Export
             <div class="menu">
               <div class="item" id="export-yaml">YAML</div>
               <div class="item" id="export-csv">CSV</div>
@@ -165,6 +169,14 @@
           <div class="field">
             <label for="metadata">Notes</label>
             <input type="text" id="metadata" placeholder="Additional details">
+          </div>
+          <div class="field" id="emoji-field" style="display: none;">
+            <label for="custom-emoji" class="font-semibold">Custom Emoji 📱</label>
+            <input type="text" id="custom-emoji" placeholder="Enter an emoji (e.g., 🚀)" class="border-blue-400">
+            <div class="text-sm text-blue-500 mt-1 font-medium">
+              For milestones with range parents, this emoji will be shown on the parent range.
+              <br>Pick your favorite emoji to make it stand out!
+            </div>
           </div>
         </div>
         
