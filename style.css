@@ -101,17 +101,67 @@ body {
   outline: none !important;
 }
 
-#event-form button[type="submit"] {
-  background-color: #3b82f6 !important;
-  border-radius: 6px !important;
-  padding: 0.5rem 1rem !important;
-  font-weight: 500 !important;
-  transition: transform 0.1s ease, box-shadow 0.1s ease !important;
+/* Refactored action buttons container */
+.action-buttons-container {
+  margin-top: 1.5rem !important;
+  margin-bottom: 1rem !important;
+  display: grid !important;
+  grid-template-columns: 1fr 1fr 1fr !important;
+  gap: 0.5rem !important;
 }
 
-#event-form button[type="submit"]:hover {
+/* Make all buttons consistent */
+.action-buttons-container .ui.button {
+  padding: 0.65rem 1rem !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  font-size: 0.8rem !important;
+  border-radius: 4px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  width: 100% !important;
+  text-align: center !important;
+}
+
+/* Primary/submit button */
+#event-form #submit-btn.ui.button.primary {
+  background-color: #3b82f6 !important;
+  color: white !important;
+  border: 1px solid #2563eb !important;
+}
+
+#event-form #submit-btn.ui.button.primary:hover {
+  background-color: #2563eb !important;
   transform: translateY(-1px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Delete button */
+#event-form #delete-btn.ui.button.negative {
+  background-color: #ef4444 !important;
+  color: white !important;
+  border: 1px solid #dc2626 !important;
+}
+
+#event-form #delete-btn.ui.button.negative:hover {
+  background-color: #dc2626 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Cancel button */
+#event-form #cancel-btn.ui.button {
+  background-color: #f9fafb !important;
+  color: #4b5563 !important;
+  border: 1px solid #d1d5db !important;
+}
+
+#event-form #cancel-btn.ui.button:hover {
+  background-color: #f3f4f6 !important;
+  color: #111827 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.05) !important;
 }
 
 /* Timeline main container */

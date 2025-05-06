@@ -1,6 +1,6 @@
 // Interactive Timeline Script
 // App configuration
-const APP_VERSION = '1.6.2';
+const APP_VERSION = '1.6.3';
 const COPYRIGHT = '© 2025 Timeline App';
 let hasUnsavedChanges = false;
 
@@ -291,14 +291,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Populate categories from existing ones
     populateCategories();
     
-    submitBtn.textContent = 'Add Event';
-    cancelBtn.style.display = '';
+    submitBtn.textContent = 'Save';
     formTitle.textContent = 'Add New Event';
     
-    // Hide delete button container when adding
-    const deleteBtnContainer = document.getElementById('delete-btn-container');
-    if (deleteBtnContainer) {
-      deleteBtnContainer.innerHTML = '';
+    // Hide delete button when adding new events
+    const deleteBtn = document.getElementById('delete-btn');
+    if (deleteBtn) {
+      deleteBtn.style.display = 'none';
     }
     
     if (window.$ && $.fn.checkbox) {
@@ -332,7 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
   cancelBtn.addEventListener('click', () => {
     editingId = null;
     form.reset();
-    submitBtn.textContent = 'Add Event';
+    submitBtn.textContent = 'Add';
     typeInput.dispatchEvent(new Event('change'));
     
     // Hide the remove parent button when canceling
@@ -1425,7 +1424,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     form.reset();
     colorInput.value = randomColor();
-    submitBtn.textContent = 'Add Event';
+    submitBtn.textContent = 'Add';
     cancelBtn.style.display = '';
     update();
     populateCategories(); // Update category dropdown after adding/editing
@@ -1619,29 +1618,29 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
     
-    // Add delete button in the delete button container
-    const deleteBtnContainer = document.getElementById('delete-btn-container');
-    if (deleteBtnContainer) {
-      // Clear any existing button first
-      deleteBtnContainer.innerHTML = '';
+    // Show and configure delete button for editing
+    const deleteBtn = document.getElementById('delete-btn');
+    if (deleteBtn) {
+      // Show the delete button
+      deleteBtn.style.display = 'block';
       
-      // Create delete button
-      const deleteEventBtn = document.createElement('button');
-      deleteEventBtn.id = 'delete-event-btn';
-      deleteEventBtn.className = 'ui negative button w-full';
-      deleteEventBtn.textContent = 'Delete Event';
-      deleteEventBtn.type = 'button'; // Ensure it's not a submit button
-      deleteEventBtn.addEventListener('click', (e) => {
+      // Remove any existing event listeners to prevent duplicates
+      const newDeleteBtn = deleteBtn.cloneNode(true);
+      deleteBtn.parentNode.replaceChild(newDeleteBtn, deleteBtn);
+      
+      // Add click event handler
+      newDeleteBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        deleteEvent(editingId);
-        hideForm();
+        
+        // Ask for confirmation before deleting
+        if (confirm('Are you sure you want to delete this event?')) {
+          deleteEvent(editingId);
+          hideForm();
+        }
       });
-      
-      // Add to the dedicated container
-      deleteBtnContainer.appendChild(deleteEventBtn);
     }
     
-    submitBtn.textContent = 'Update Event';
+    submitBtn.textContent = 'Save';
     
     // Form is already shown at the beginning of the function
     formContainer.scrollIntoView({ behavior: 'smooth' });

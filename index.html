@@ -162,11 +162,11 @@
           <input type="text" id="metadata" placeholder="Additional details">
         </div>
         
-        <!-- Action Buttons -->
-        <div class="flex gap-2 justify-between mb-2">
-          <div id="delete-btn-container" style="flex: 1;"></div>
-          <button type="button" id="cancel-btn" class="ui small button">Cancel</button>
-          <button type="submit" id="submit-btn" class="ui small primary button">Add Event</button>
+        <!-- Action Buttons - Refactored -->
+        <div class="action-buttons-container">
+          <button type="submit" id="submit-btn" class="ui button primary">Save</button>
+          <button type="button" id="delete-btn" class="ui button negative" style="display: none;">Delete</button>
+          <button type="button" id="cancel-btn" class="ui button">Cancel</button>
         </div>
       </form>
     </section>
