@@ -1,6 +1,6 @@
 // Interactive Timeline Script
 // App configuration
-const APP_VERSION = '1.6.5';
+const APP_VERSION = '1.6.8';
 const COPYRIGHT = '© 2025 Timeline App';
 let hasUnsavedChanges = false;
 
@@ -28,9 +28,7 @@ function updateModificationStatus() {
       statusElement.style.display = 'none';
     }
   }
-  
-  // We no longer need to update the footer modification status
-  // as it's been moved to the buttons area
+
 }
 document.addEventListener('DOMContentLoaded', () => {
   // Initialize footer with version and copyright
@@ -1742,8 +1740,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const lifeLabels = document.querySelectorAll('.life-label.below-chart');
     lifeLabels.forEach(label => {
       if (label.style.transform) {
-        // Make sure transform property is properly set
-        label.style.transformOrigin = 'top center';
       }
     });
     
@@ -2996,13 +2992,6 @@ document.addEventListener('DOMContentLoaded', () => {
           country = d.place;
         }
         
-        // Debug logging for location issues (uncomment to debug)
-        // console.log("Event location check:", d.title, 
-        //   "location:", JSON.stringify(d.location), 
-        //   "place:", d.place, 
-        //   "result:", country,
-        //   "city:", city);
-        
         if (country) {
           // Normalize the country name to match GeoJSON standards
           const normalizedCountry = normalizeCountryName(country);
@@ -4129,7 +4118,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const yearLabel = document.createElement('div');
         yearLabel.className = 'year-label';
         yearLabel.textContent = year;
-        yearLabel.style.left = '50%';
         monthDiv.appendChild(yearLabel);
       }
       
@@ -4138,7 +4126,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const label = document.createElement('div');
         label.className = 'month-label';
         label.textContent = month.toLocaleDateString('en-US', { month: 'short' });
-        label.style.left = '50%';
         monthDiv.appendChild(label);
       }
       
@@ -4730,7 +4717,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Position the Today label directly under its marker
         todayLabel.style.left = `${todayPosition}%`;
-        todayLabel.style.transform = 'translate(-50%, 0) rotate(45deg)';
         
         // Add a debug marker to the exact position
         todayLabel.setAttribute('data-marker', 'today');
@@ -4742,11 +4728,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add to the labels container
         labelsContainer.appendChild(todayLabel);
         
-        // Force consistent transform for proper alignment
-        setTimeout(() => {
-          todayLabel.style.transform = 'translate(-50%, 0) rotate(45deg)';
-          todayLabel.style.transformOrigin = 'top center';
-        }, 50);
       }
       
       // Add each life event as a vertical line
@@ -4776,8 +4757,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Position label directly beneath the life-line
         labelDiv.style.left = `${leftPosition}%`;
-        labelDiv.style.transform = 'translate(-50%, 0) rotate(45deg)';
-        
+
+
         // Store event ID for click handling
         labelDiv.dataset.eventId = event.id;
         lineDiv.dataset.eventId = event.id;
@@ -4795,17 +4776,9 @@ document.addEventListener('DOMContentLoaded', () => {
         labelDiv.setAttribute('data-date-position', leftPosition);
         lineDiv.setAttribute('data-date-position', leftPosition);
         
-        // We'll apply transform consistently via CSS only
-        // No inline transform styling needed - CSS class handles it
         
         // Add the label to the container
         labelsContainer.appendChild(labelDiv);
-        
-        // Force consistent transform for proper alignment
-        setTimeout(() => {
-          labelDiv.style.transform = 'translate(-50%, 0) rotate(45deg)';
-          labelDiv.style.transformOrigin = 'top center';
-        }, 50);
         
         // Log for debugging
         console.log(`Positioned life-label for "${event.title}" at ${leftPosition}%`);
@@ -5641,13 +5614,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const currentLeft = parseFloat(el.style.left) || 0;
         el.style.left = `${currentLeft - shiftPercentage}%`;
         
-        // Ensure transform is maintained for consistent appearance
-        if (!el.style.transform.includes('translate(-50%, 0)')) {
-          el.style.transform = 'translate(-50%, 0) rotate(45deg)';
-        }
-        
-        // Keep transform origin consistent
-        el.style.transformOrigin = 'top center';
       });
     }
   }

@@ -315,16 +315,19 @@ body {
   background-color: #22c55e; /* Green color */
   z-index: 10;
   box-shadow: 0 0 8px rgba(34, 197, 94, 0.6); /* Glow effect */
+  
 }
 
 /* Today label styling */
 .today-label {
   filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
   transition: transform 0.2s ease;
+  transform: rotate(45deg);
+  transform-origin: top left;
 }
 
 .today-label:hover {
-  transform: translateX(-50%) translateY(-2px);
+  transform: translateY(-2px);
 }
 
 /* Events */
@@ -337,7 +340,6 @@ body {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   transition: box-shadow 0.2s ease, transform 0.2s ease;
   z-index: 5;
-  min-width: 50px;
   /* No transform by default - align exactly with calculated position */
 }
 .timeline-event:hover {
@@ -438,13 +440,13 @@ body {
 
 /* Container for life event labels */
 .life-labels-container {
-  width: 100%;
+  /* width: 100%; */
   position: relative;
   height: 100px;
   margin-top: 5px;
   overflow: visible;
   z-index: 20;
-  padding-left: 180px; /* Match the timeline layout */
+  margin-left: 180px; /* Match the timeline layout */
 }
 
 /* Life label styling - using a different approach for perfect alignment */
@@ -459,16 +461,9 @@ body {
   color: white;
   cursor: pointer;
   
-  /* Important: Use absolute positioning for stability */
-  top: 30px; /* Small offset from the top to match the life-line */
   
-  /* 
-   * The transform is applied by JavaScript directly
-   * This will use transform: translate(-50%, 0) rotate(45deg);
-   */
-  
-  /* Square top corner for visible alignment with life-line */
-  border-top-right-radius: 0;
+  transform: rotate(45deg);
+  transform-origin: top left;
   
   /* Add visible alignment marker */
   border-top: 2px solid yellow;
@@ -476,8 +471,6 @@ body {
   /* Ensure consistent z-index */
   z-index: 12;
   
-  /* Create alignment point at center top */
-  transform-origin: top center;
 }
 
 .life-label.below-chart:hover {
