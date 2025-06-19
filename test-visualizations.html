@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Visualizations Module</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { margin: 20px 0; }
+        #world-heatmap, #nested-pie-chart { 
+            border: 1px solid #ccc; 
+            margin: 10px 0; 
+            min-height: 400px; 
+        }
+    </style>
+</head>
+<body>
+    <h1>Visualizations Module Test</h1>
+    
+    <div class="container">
+        <h2>World Heatmap</h2>
+        <div id="world-heatmap"></div>
+    </div>
+    
+    <div class="container">
+        <h2>Nested Pie Chart</h2>
+        <div id="nested-pie-chart"></div>
+    </div>
+
+    <script type="module">
+        import { 
+            initializeWorldData, 
+            renderAllVisualizations 
+        } from './js/visualizations.js';
+
+        // Sample test data
+        const testEvents = [
+            {
+                id: 1,
+                title: "Work in San Francisco",
+                type: "range",
+                start: new Date('2023-01-01'),
+                end: new Date('2023-06-30'),
+                category: "Work",
+                location: { country: "United States", city: "San Francisco" },
+                color: "#4D96FF"
+            },
+            {
+                id: 2,
+                title: "Trip to Tokyo",
+                type: "range",
+                start: new Date('2023-07-01'),
+                end: new Date('2023-07-15'),
+                category: "Travel",
+                location: { country: "Japan", city: "Tokyo" },
+                color: "#FF6B6B"
+            },
+            {
+                id: 3,
+                title: "Conference in Berlin",
+                type: "milestone",
+                start: new Date('2023-08-15'),
+                category: "Work",
+                location: { country: "Germany", city: "Berlin" },
+                color: "#6BCB77"
+            }
+        ];
+
+        const timeDomain = [new Date('2023-01-01'), new Date('2023-12-31')];
+
+        // Initialize world data and render visualizations
+        initializeWorldData().then(() => {
+            console.log('World data loaded, rendering visualizations...');
+            renderAllVisualizations(testEvents, timeDomain);
+            console.log('Visualizations rendered successfully!');
+        }).catch(error => {
+            console.error('Error initializing visualizations:', error);
+        });
+    </script>
+</body>
+</html>
