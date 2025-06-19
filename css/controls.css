@@ -1,0 +1,196 @@
+/* ========================================
+   CONTROLS STYLES
+   Zoom controls, import/export buttons, and control elements
+   ======================================== */
+
+/* Zoom controls */
+.zoom-controls {
+  position: fixed !important; /* Force fixed positioning */
+  right: 30px !important;
+  bottom: 30px !important;
+  top: auto !important;
+  display: flex !important; /* Force display */
+  flex-direction: column !important;
+  gap: 8px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 900 !important; /* Below the form z-index (1000) */
+  transition: right 0.3s ease, opacity 0.2s ease;
+  opacity: 0.85;
+  pointer-events: auto !important; /* Ensure clicks work */
+  visibility: visible !important; /* Force visibility */
+}
+
+/* Move zoom controls when form is open */
+#form-container.open ~ #timeline-container .zoom-controls {
+  right: 320px !important; /* Match form width + a bit of margin */
+}
+
+.zoom-controls:hover {
+  opacity: 1;
+}
+
+/* Zoom buttons styling */
+.zoom-controls button {
+  margin: 0;
+  padding: 5px 8px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  color: #4b5563;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.zoom-controls button:hover {
+  background-color: #f3f4f6;
+  border-color: #d1d5db;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.zoom-controls button.reset-button {
+  font-size: 18px;
+  color: #3b82f6;
+}
+
+/* Import/Export controls container */
+.controls-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.right-controls {
+  display: flex;
+  align-items: center;
+}
+
+.left-controls {
+  /* Left controls styling handled in buttons below */
+}
+
+/* Import/Export buttons styling */
+.controls-container .right-controls .ui.button {
+  background-color: white !important;
+  color: #4b5563 !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 6px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.2s ease !important;
+  font-weight: 500 !important;
+  padding: 0.6rem 1rem !important;
+}
+
+.controls-container .right-controls .ui.button:hover {
+  border-color: #d1d5db !important;
+  background-color: #f9fafb !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1) !important;
+}
+
+.controls-container .left-controls .ui.primary.button {
+  background-color: #3b82f6 !important;
+  color: white !important;
+  border-radius: 6px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+  transition: all 0.2s ease !important;
+  font-weight: 500 !important;
+  padding: 0.6rem 1rem !important;
+}
+
+.controls-container .left-controls .ui.primary.button:hover {
+  background-color: #2563eb !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Import/export button fixes */
+.ui.compact.buttons .button,
+.ui.compact.buttons .dropdown {
+  padding: 0.6em 1em !important;
+  height: auto !important;
+  min-height: 2.4em !important;
+  line-height: 1 !important;
+  min-width: 6em !important;
+}
+
+.ui.small.button, .ui.small.buttons .button,
+.ui.small.buttons .dropdown.button {
+  font-size: 0.85rem !important;
+}
+
+/* Fix consistent spacing for icons */
+.ui.icon.button > .icon,
+.ui.icon.buttons .button > .icon {
+  margin: 0 0.4em 0 0 !important;
+  vertical-align: middle !important;
+}
+
+/* Modification status styling in the button area */
+#modification-status.ui.small.yellow.label {
+  vertical-align: middle !important;
+  height: auto !important;
+  padding: 0.5em 0.8em !important;
+  margin-left: 0.5em !important;
+  font-size: 0.8rem !important;
+  line-height: 1 !important;
+}
+
+/* Fix for export dropdown menu */
+.ui.dropdown .menu {
+  position: absolute !important;
+  z-index: 9999 !important; 
+  max-height: 300px !important;
+  overflow-y: auto !important;
+}
+
+#export-dropdown.ui.dropdown {
+  position: relative;
+  z-index: 1000;
+}
+
+/* Fix alignment between icon and text in buttons */
+.ui.button > .icon:not(.button) {
+  vertical-align: middle !important;
+  margin-top: -0.1em !important;
+}
+
+/* Import stats styling */
+#import-stats {
+  transition: all 0.3s ease;
+  font-size: 0.85rem;
+  margin-top: 10px;
+  border-top: 1px solid #f0f0f0;
+  padding-top: 10px;
+}
+
+/* Responsive adjustments for controls */
+@media (max-width: 768px) {
+  .controls-container {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .right-controls, .left-controls {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  /* Make buttons more mobile-friendly */
+  .ui.compact.buttons {
+    display: flex;
+    justify-content: center;
+  }
+}

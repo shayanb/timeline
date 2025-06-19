@@ -1,0 +1,26 @@
+<div class="controls-container bg-white p-3 rounded-md shadow-sm mb-6">
+  <div class="left-controls">
+    <button id="add-event-btn" class="ui primary button">
+      <i class="plus icon"></i> Add Event
+    </button>
+  </div>
+  <div class="right-controls">
+    <div class="ui compact buttons">
+      <button type="button" id="import-btn" class="ui small compact icon button">
+        <i class="upload icon"></i>
+        Import
+      </button>
+      <div class="ui small compact floating dropdown icon button" id="export-dropdown">
+        <i class="download icon"></i>
+        Export
+        <div class="menu">
+          <div class="item" id="export-yaml">YAML</div>
+          <div class="item" id="export-csv">CSV</div>
+          <div class="item" id="export-png">PNG Image</div>
+        </div>
+      </div>
+      <span id="modification-status" class="ui small yellow label" style="display: none;">MODIFIED</span>
+    </div>
+    <input type="file" id="import-file" accept=".yaml,.yml,.csv" hidden>
+  </div>
+</div>

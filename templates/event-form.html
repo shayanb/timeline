@@ -1,0 +1,122 @@
+<section id="form-container" class="bg-white p-3 rounded-md shadow-sm transition-all">
+  <div class="flex justify-between items-center mb-3">
+    <h3 class="text-lg font-semibold" id="form-title">Add New Event</h3>
+    <button type="button" id="close-form-btn" class="text-gray-500 hover:text-gray-700">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    </button>
+  </div>
+  
+  <form id="event-form" class="ui form">
+    <!-- Minimalist form with no section boxes -->
+    <div class="field">
+      <label for="title">Title</label>
+      <input type="text" id="title" placeholder="Title" required>
+    </div>
+    
+    <div class="two fields">
+      <div class="field">
+        <label for="start-date">Start Date</label>
+        <input type="date" id="start-date" required>
+      </div>
+      <div class="field">
+        <label for="end-date">End Date</label>
+        <input type="date" id="end-date" required>
+      </div>
+    </div>
+    
+    <div class="two fields">
+      <div class="field">
+        <label for="event-type">Type</label>
+        <select id="event-type" class="ui dropdown">
+          <option value="range">Range Event</option>
+          <option value="life">Life Event</option>
+          <option value="milestone">Milestone</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="category">Category</label>
+        <div class="ui search selection dropdown" id="category-dropdown">
+          <input type="hidden" id="category">
+          <i class="dropdown icon"></i>
+          <div class="default text">Category</div>
+          <div class="menu" id="category-menu">
+            <div class="item" data-value="">None</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="two fields">
+      <div class="field">
+        <label for="color">Color</label>
+        <input type="color" id="color" value="#1f77b4">
+      </div>
+      <div class="field" id="row-field" style="display: none;">
+        <label for="event-row">Row</label>
+        <select id="event-row" class="ui compact dropdown">
+          <!-- Options will be populated by JavaScript -->
+        </select>
+      </div>
+    </div>
+    
+    <div class="field">
+      <div class="ui checkbox">
+        <input type="checkbox" id="important">
+        <label for="important">Mark as important</label>
+      </div>
+    </div>
+    
+    <div class="two fields">
+      <div class="field">
+        <label for="parent-event">Parent Event</label>
+        <div class="ui action input">
+          <select id="parent-event" class="ui compact dropdown">
+            <option value="">None</option>
+          </select>
+          <button type="button" id="remove-parent-btn" class="ui mini icon button" style="display: none;">
+            <i class="x icon"></i>
+          </button>
+        </div>
+      </div>
+      <div class="field">
+        <div class="ui checkbox">
+          <input type="checkbox" id="is-parent">
+          <label for="is-parent">Mark as parent event</label>
+        </div>
+      </div>
+    </div>
+    
+    <div class="field">
+      <label for="event-id">Event ID</label>
+      <input type="text" id="event-id" placeholder="unique-id">
+    </div>
+    
+    <div class="two fields">
+      <div class="field">
+        <label for="city">City</label>
+        <input type="text" id="city" placeholder="City">
+      </div>
+      <div class="field">
+        <label for="country">Country</label>
+        <div class="ui search selection dropdown" id="country-dropdown">
+          <input type="hidden" id="country">
+          <i class="dropdown icon"></i>
+          <div class="default text">Country</div>
+          <div class="menu" id="country-menu"></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="field">
+      <label for="metadata">Notes</label>
+      <input type="text" id="metadata" placeholder="Additional details">
+    </div>
+    
+    <!-- Action Buttons - Refactored -->
+    <div class="action-buttons-container">
+      <button type="submit" id="submit-btn" class="ui button primary">Save</button>
+      <button type="button" id="delete-btn" class="ui button negative" style="display: none;">Delete</button>
+      <button type="button" id="cancel-btn" class="ui button">Cancel</button>
+    </div>
+  </form>
+</section>

@@ -1,0 +1,38 @@
+start,end,title,type,color,metadata,category,isImportant,isParent,row,location_city,location_country,eventId,parentId,place,_customRow,categoryBgColor
+2019-05-15,2019-05-15,Graduated College,life,#4CAF50,Bachelor's in Computer Science,academic,false,false,null,Boston,United States,5e403577-3941-4d83-a0ec-5bea066caf62,,null,false,"rgba(76, 175, 80, 0.08)"
+2021-09-01,2025-06-30,PhD Program,range,#8E44AD,Doctoral research program,academic,false,true,0,Cambridge,United States,phd-program,,null,true,null
+2023-03-15,2023-03-15,Proposal Defense,milestone,#8E44AD,Proposal successfully defended,academic,false,false,1,Cambridge,United States,9e5e14ea-7c59-4419-b78d-e4d288e448b7,phd-program,null,false,null
+2025-05-15,2025-05-15,PhD Defense,milestone,#8E44AD,Doctoral defense completed,academic,false,false,1,Cambridge,United States,6bdb162c-2aed-4b30-b7f9-cc8730ef4a76,phd-program,null,false,null
+2025-06-30,2025-06-30,Graduation Ceremony,milestone,#8E44AD,Awarded PhD degree,academic,false,false,1,Cambridge,United States,09330932-7618-4305-8583-7c0b162bd31c,phd-program,null,false,null
+2019-07-01,2019-07-01,First Job,life,#2196F3,Software Engineer at TechCorp,career,false,false,null,New York,United States,09e35a13-10a7-4d12-a294-c62e2b9438d3,,null,false,"rgba(33, 150, 243, 0.08)"
+2020-02-15,2020-02-15,Moved to San Francisco,life,#a293df,Relocated for new opportunity,family,false,false,null,San Francisco,United States,48c37bb6-5c00-4888-bc92-7696ff288b7a,,null,false,"rgba(233, 30, 99, 0.08)"
+2021-06-25,2021-06-25,Got Married,life,#E91E63,Wedding ceremony in Napa Valley,family,false,false,null,Napa Valley,United States,83e9d802-eaf2-4f01-9c94-b3a7db0fc171,,null,false,null
+2022-03-10,2022-03-10,Bought First House,life,#9C27B0,Home ownership milestone,family,false,false,null,San Francisco,United States,6fe940b3-1421-4ac1-8334-ba91cdf3a3db,,null,false,null
+2023-01-15,2023-01-15,Had First Child,life,#FF9800,Welcome baby Emma!,family,false,false,null,San Francisco,United States,1a9e24d3-9bff-4add-83b2-13fe582f66f6,,null,false,null
+2021-01-01,2021-08-15,Software Engineer at TechCorp,range,#3F51B5,First major product development project,career,true,true,0,San Francisco,United States,job-techcorp,,null,true,null
+2021-01-01,2021-02-28,Initial Research,range,#2196F3,Market research and competitor analysis,career,false,false,1,San Francisco,United States,research-phase,job-techcorp,null,true,null
+2021-03-15,2021-03-19,Design Sprint,range,#9C27B0,Product design workshop,career,false,false,1,San Francisco,United States,design-sprint,job-techcorp,null,true,null
+2021-04-01,2021-06-30,MVP Development,range,#4CAF50,Building minimum viable product,career,false,false,1,San Francisco,United States,mvp-dev,job-techcorp,null,true,null
+2021-07-01,2021-08-15,Alpha Testing,range,#FF9800,Internal testing phase,career,false,false,1,San Francisco,United States,alpha-testing,job-techcorp,null,true,null
+2021-09-01,2021-09-01,Beta Launch,milestone,#E91E63,Public beta release,career,false,false,0,San Francisco,United States,e25a21ed-048d-4773-95e0-687e8fc1da63,,null,false,null
+2021-12-01,2021-12-01,Version 1.0,milestone,#2196F3,Official product launch,career,false,false,0,San Francisco,United States,f3adc3e5-3536-4ad3-b19c-3dd99ce43aab,,null,false,null
+2022-06-15,2022-06-15,Major Update 2.0,milestone,#4CAF50,Significant feature release,career,false,false,1,San Francisco,United States,b5484a35-18aa-42b9-81d2-38488526f452,,null,false,null
+2018-01-01,2018-01-01,Company Founded,milestone,#2196F3,Initial founding with 3 employees,career,false,false,0,New York,United States,f019b2ec-da98-4fca-8c3b-8c05a9e60bad,,null,false,null
+2018-06-15,2018-06-15,Seed Funding,milestone,#4CAF50,Raised $500K seed round,career,false,false,0,New York,United States,b51914c6-1b8a-4a39-814e-4133a2e425e8,,null,false,null
+2018-08-31,2020-08-31,First Office,range,#47a7e8,First physical office space,career,false,false,0,New York,United States,83f02f6c-754e-47c4-8ca3-0659137a5bfc,,null,false,null
+2019-03-20,2019-03-20,Series A,milestone,#4CAF50,Raised $5M Series A,career,false,false,1,New York,United States,0f14707a-5ec5-44db-af5b-7425216bd8c0,,null,false,null
+2019-12-01,2019-12-01,100th Customer,milestone,#fbd8a7,Major customer milestone,career,false,false,1,New York,United States,6f85017c-ea22-4854-90ff-c99b6abde11e,,null,false,null
+2020-06-01,2020-12-31,International Expansion,range,#FF9800,Opened offices in London and Singapore,career,true,false,1,London,United Kingdom,801906ea-c43f-4d89-9360-3cd1a0b93842,,null,false,null
+2020-07-15,2023-04-15,Singapore Office,range,#3F51B5,Asia Pacific headquarters,career,true,false,2,Singapore,Singapore,d9d3c318-2aca-4ab0-8717-be4df0ec949b,,null,false,null
+2022-02-01,2022-06-30,Tokyo Partnership,range,#009688,Strategic partnership with Japanese firm,career,false,false,0,Tokyo,Japan,2c638926-8773-4748-81c6-62510839a971,,null,false,null
+2022-09-10,2022-09-15,Berlin Conference,range,#607D8B,International technology conference,academic,false,false,1,Berlin,Germany,f96c596b-88ba-4541-aae3-8227cdab42b1,,null,false,null
+2023-04-15,2023-04-15,IPO,milestone,#E91E63,Listed on NYSE,career,true,false,0,New York,United States,4015b2dd-d7aa-4d3e-b740-abdd8b409c3b,,null,false,null
+2024-01-01,2024-06-30,World Tour 2024,range,#8E44AD,Six-month global business development tour,travel,true,true,0,New York,United States,world-tour,,null,false,"rgba(142, 68, 173, 0.08)"
+2024-01-01,2024-01-31,US Tour,range,#3498DB,East and West Coast client meetings,travel,false,false,1,New York,United States,us-leg,world-tour,null,false,null
+2024-02-01,2024-03-31,European Tour,range,#16A085,Major European cities for expansion,travel,false,false,1,London,United Kingdom,europe-leg,world-tour,null,false,null
+2024-04-01,2024-05-31,Asia Tour,range,#E74C3C,Asian market development,travel,false,false,1,Tokyo,Japan,asia-leg,world-tour,null,false,null
+2024-03-15,2024-03-20,Berlin Tech Summit,range,#2ECC71,Major industry conference during European tour,travel,false,false,2,Berlin,Germany,berlin-conference,europe-leg,null,false,null
+2022-01-01,2022-06-30,Cloud Certification Program,range,#F39C12,Professional development certification,education,true,false,0,San Francisco,United States,certification-program,,null,false,"rgba(243, 156, 18, 0.08)"
+2022-03-01,2022-05-15,Leadership Training,range,#D35400,Executive leadership development program,education,false,false,1,Boston,United States,leadership-training,,null,false,null
+2022-02-15,2022-04-30,Product Redesign,range,#27AE60,Major UI/UX redesign project,project,true,false,1,San Francisco,United States,team-project-1,,null,false,"rgba(39, 174, 96, 0.08)"
+2022-01-15,2022-05-20,Backend Migration,range,#2980B9,Cloud infrastructure migration,project,false,false,0,San Francisco,United States,team-project-2,,null,false,null
