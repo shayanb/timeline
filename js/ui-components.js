@@ -792,6 +792,89 @@ export function setupButtonHandlers(config) {
   if (typeInput && onTypeChange) {
     typeInput.addEventListener('change', onTypeChange);
   }
+
+  // AI Import Help button
+  const importHelpBtn = document.getElementById('import-help-btn');
+  if (importHelpBtn) {
+    importHelpBtn.addEventListener('click', () => {
+      const modal = document.getElementById('ai-import-help-modal');
+      if (modal && window.$ && $.fn.modal) {
+        $('#ai-import-help-modal').modal('show');
+      }
+    });
+  }
+
+  // Copy prompt button
+  const copyPromptBtn = document.getElementById('copy-prompt-btn');
+  if (copyPromptBtn) {
+    copyPromptBtn.addEventListener('click', () => {
+      const promptText = document.getElementById('ai-prompt-text');
+      if (promptText) {
+        // Use the modern Clipboard API if available
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(promptText.textContent).then(() => {
+            // Show success feedback
+            const originalText = copyPromptBtn.innerHTML;
+            copyPromptBtn.innerHTML = '<i class="check icon"></i> Copied!';
+            copyPromptBtn.classList.add('green');
+            
+            setTimeout(() => {
+              copyPromptBtn.innerHTML = originalText;
+              copyPromptBtn.classList.remove('green');
+            }, 2000);
+          }).catch(err => {
+            console.error('Failed to copy text: ', err);
+            // Fallback to selection method
+            fallbackCopyTextToClipboard(promptText.textContent);
+          });
+        } else {
+          // Fallback for older browsers or non-secure contexts
+          fallbackCopyTextToClipboard(promptText.textContent);
+        }
+      }
+    });
+  }
+}
+
+/**
+ * Fallback function to copy text to clipboard using selection
+ * @param {string} text - Text to copy
+ */
+function fallbackCopyTextToClipboard(text) {
+  const textArea = document.createElement('textarea');
+  textArea.value = text;
+  
+  // Avoid scrolling to bottom
+  textArea.style.top = '0';
+  textArea.style.left = '0';
+  textArea.style.position = 'fixed';
+  
+  document.body.appendChild(textArea);
+  textArea.focus();
+  textArea.select();
+  
+  try {
+    const successful = document.execCommand('copy');
+    if (successful) {
+      // Show success feedback
+      const copyPromptBtn = document.getElementById('copy-prompt-btn');
+      if (copyPromptBtn) {
+        const originalText = copyPromptBtn.innerHTML;
+        copyPromptBtn.innerHTML = '<i class="check icon"></i> Copied!';
+        copyPromptBtn.classList.add('green');
+        
+        setTimeout(() => {
+          copyPromptBtn.innerHTML = originalText;
+          copyPromptBtn.classList.remove('green');
+        }, 2000);
+      }
+    }
+  } catch (err) {
+    console.error('Fallback: Unable to copy', err);
+    alert('Unable to copy text. Please manually select and copy the prompt above.');
+  }
+  
+  document.body.removeChild(textArea);
 }
 
 // =============================================================================

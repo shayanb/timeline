@@ -33,6 +33,9 @@
       </div>
       <div class="right-controls">
         <div class="ui compact buttons">
+          <button type="button" id="import-help-btn" class="ui small compact circular icon button" title="AI Import Help" style="margin-right: 8px;">
+            <i class="info circle icon"></i>
+          </button>
           <button type="button" id="import-btn" class="ui small compact icon button">
             <i class="upload icon"></i>
             Import
@@ -241,6 +244,117 @@
       </div>
     </footer>
   </div>
+
+  <!-- AI Import Help Modal -->
+  <div class="ui large modal" id="ai-import-help-modal">
+    <i class="close icon"></i>
+    <div class="header">
+      <i class="robot icon"></i>
+      AI-Assisted CSV Generation
+    </div>
+    <div class="scrolling content">
+      <div class="ui container">
+        <h3>How to Use AI (ChatGPT/Claude) to Create Timeline Data</h3>
+        <p>You can use AI tools to convert your natural language stories into properly formatted CSV data for import.</p>
+        
+        <div class="ui three stackable steps">
+          <div class="step">
+            <i class="edit icon"></i>
+            <div class="content">
+              <div class="title">Tell Your Story</div>
+              <div class="description">Write your story in natural language</div>
+            </div>
+          </div>
+          <div class="step">
+            <i class="copy icon"></i>
+            <div class="content">
+              <div class="title">Use the Prompt</div>
+              <div class="description">Copy the prompt below with your story</div>
+            </div>
+          </div>
+          <div class="step">
+            <i class="download icon"></i>
+            <div class="content">
+              <div class="title">Import Result</div>
+              <div class="description">Save CSV output and import it here</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ui divider"></div>
+        <div class="ui two column stackable grid" style="margin-top: 20px;">
+        <div class="column">
+            <h2>Example Story Input:</h2>
+            <div class="ui secondary segment">
+              <p style="font-style: italic; font-size: 0.9em; line-height: 1.4;">
+                "I graduated from UC Berkeley with a Computer Science degree in May 2020. During my time there from 2016-2020, I did an internship at Google in summer 2019 in Mountain View, and another at Microsoft in Seattle during summer 2018. After graduation, I started working at Meta in Menlo Park in August 2020. I got promoted to Senior Engineer in January 2022. I also traveled to Japan for vacation in March 2021 and to Europe (France, Italy, Germany) in summer 2022."
+              </p>
+            </div>
+          </div>
+
+          <div class="column">
+            <div class="ui info message">
+              <div class="header">Tips for Better Results:</div>
+              <ul class="ui list">
+                <li>Be specific about dates and timeframes</li>
+                <li>Mention locations clearly</li>
+                <li>Group related events by mentioning categories</li>
+                <li>Indicate which events are most important</li>
+                <li>Describe relationships between events</li>
+              </ul>
+            </div>
+          </div>
+
+        </div>
+        <h3>Copy-Paste Prompt for AI</h3>
+        <div class="ui segment" style="background-color: #f8f9fa; position: relative;">
+          <button class="ui right floated mini primary button" id="copy-prompt-btn" style="position: absolute; top: 10px; right: 10px; z-index: 10;">
+            <i class="copy icon"></i>
+            Copy Prompt
+          </button>
+          <div class="ui top attached label">Prompt for ChatGPT/Claude</div>
+          <div id="ai-prompt-text" style="font-family: 'Courier New', monospace; white-space: pre-wrap; font-size: 0.85em; line-height: 1.5; padding-top: 30px; word-wrap: break-word; overflow-wrap: break-word;">Please convert the following story into a CSV format for a timeline application. Use this exact header format and follow these guidelines:
+
+**CSV Header (use exactly):**
+title,start,end,type,category,color,isImportant,isParent,parent_id,event_id,location_city,location_country,metadata,row
+
+**Guidelines:**
+- **title**: Event name/description
+- **start**: Start date in YYYY-MM-DD format
+- **end**: End date in YYYY-MM-DD format (same as start for single-day events)
+- **type**: Use "range" for events with duration (jobs, education periods), "life" for major life events (graduation, marriage, moves, births, deaths), "milestone" for single moments (promotions, awards)
+- **category**: Group related events (e.g., "Education", "Career", "Travel", "Personal")
+- **color**: Hex color code (e.g., #1f77b4) or leave empty for auto-assignment
+- **isImportant**: true/false - mark significant events
+- **isParent**: true/false - true if this event has sub-events
+- **parent_id**: ID of parent event if this is a sub-event, empty otherwise
+- **event_id**: Unique identifier for this event (e.g., edu_001, career_002)
+- **location_city**: City where event occurred
+- **location_country**: Country where event occurred
+- **metadata**: Additional notes or details
+- **row**: Leave empty for auto-placement, or specify number for manual row assignment
+
+**Default Values:**
+- If dates are unclear, ask me to clarify
+- If location is mentioned but not specific, put general location in country field
+- If duration isn't clear, make it a single-day event (start = end)
+- Use meaningful event_id values that group related events
+- Create parent-child relationships for related events (e.g., "University Studies" as parent, individual courses as children)
+
+**My Story:**
+[PASTE YOUR STORY HERE]
+
+Please ask clarifying questions if any important details are missing, then provide the CSV output ready for copy and also import (actual .csv file).</div>
+        </div>
+
+
+      </div>
+    </div>
+    <div class="actions">
+      <div class="ui cancel button">Close</div>
+    </div>
+  </div>
+
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/semantic-ui@2.4.2/dist/semantic.min.js"></script>
   <script src="https://d3js.org/d3.v7.min.js"></script>
