@@ -287,7 +287,7 @@
             <h4 style="margin-top: 0; margin-bottom: 1rem;">Example Story Input:</h4>
             <div class="ui secondary segment">
               <p style="font-style: italic; font-size: 0.9em; line-height: 1.4;">
-                "I graduated from UC Berkeley with a Computer Science degree in May 2020. During my time there from 2016-2020, I did an internship at Google in summer 2019 in Mountain View, and another at Microsoft in Seattle during summer 2018. After graduation, I started working at Meta in Menlo Park in August 2020. I got promoted to Senior Engineer in January 2022. I also traveled to Japan for vacation in March 2021 and to Europe (France, Italy, Germany) in summer 2022."
+                "I studied Computer Science at UC Berkeley from fall 2016 to spring 2020, which was the most transformative period of my life. During my studies, I completed several important projects including my senior capstone project in spring 2020 and a machine learning research project in fall 2019. I also did internships - one at Google in Mountain View during summer 2019 working on search algorithms, and another at Microsoft in Seattle during summer 2018 focusing on cloud infrastructure. After graduating with my degree in May 2020, I moved to Menlo Park and started my career at Meta in August 2020. My first major achievement there was getting promoted to Senior Engineer in January 2022, which was really important to me. I also love traveling - I went to Japan in March 2021 and took an amazing trip through Europe visiting France, Italy, and Germany in summer 2022."
               </p>
             </div>
           </div>
@@ -311,43 +311,71 @@
             Copy Prompt
           </button>
           <div class="ui top attached label">Copy-Paste Prompt for AI</div>
-          <div id="ai-prompt-text" style="font-family: 'Courier New', monospace; white-space: pre-wrap; font-size: 0.85em; line-height: 1.5; padding-top: 30px; word-wrap: break-word; overflow-wrap: break-word;">Please convert the following story into a CSV format for a timeline application. Use this exact header format and follow these guidelines:
+          <div id="ai-prompt-text" style="font-family: 'Courier New', monospace; white-space: pre-wrap; font-size: 0.85em; line-height: 1.5; padding-top: 30px; word-wrap: break-word; overflow-wrap: break-word;">Please convert the following story into a CSV format for a timeline application. Use this exact header format and follow these CRITICAL guidelines for creating sophisticated timeline structures:
 
 **CSV Header (use exactly):**
 title,start,end,type,category,color,isImportant,isParent,parent_id,event_id,location_city,location_country,metadata,row
 
-**Guidelines:**
-- **title**: Event name/description
-- **start**: Start date in YYYY-MM-DD format
-- **end**: End date in YYYY-MM-DD format (same as start for single-day events)
-- **type**: Use "range" for events with duration (jobs, education periods), "life" for major life events (graduation, marriage, moves, births, deaths), "milestone" for single moments (promotions, awards)
-- **category**: Group related events (e.g., "Education", "Career", "Travel", "Personal")
-- **color**: Hex color code (e.g., #1f77b4) or leave empty for auto-assignment
-- **isImportant**: true/false - mark significant events
-- **isParent**: true/false - true if this event has sub-events
-- **parent_id**: ID of parent event if this is a sub-event, empty otherwise
-- **event_id**: Unique identifier for this event (e.g., edu_001, career_002)
-- **location_city**: City where event occurred
-- **location_country**: Country where event occurred
-- **metadata**: Additional notes or details
-- **row**: Leave empty for auto-placement, or specify number for manual row assignment
+**CRITICAL: Dual Event Creation Rules**
+For major life transitions (starting jobs, beginning education, starting relationships, etc.), you MUST create TWO events:
+1. A "life" event marking the specific moment/day it started
+2. A "range" event representing the ongoing period/duration
 
-**Event Type Examples:**
-- **"range"**: University attendance (2016-2020), Job at company (2020-2023), Training program
-- **"life"**: Graduation, Wedding, Moving to new city, Birth of child, Starting university, Death of family member
-- **"milestone"**: Promotion, Award received, Conference presentation, First day at job, Interview
+**Event Type Guidelines:**
+- **"life"**: Single-moment major life changes (graduation day, first day at job, wedding day, birth, death, moving day, starting university)
+- **"range"**: Ongoing periods with duration (employment at company, university studies, relationships, living in a location, projects)
+- **"milestone"**: Achievements within ongoing periods (promotions, awards, completions) - MUST have parent_id linking to the range event
 
-**Default Values:**
-- If dates are unclear, ask me to clarify
-- If location is mentioned but not specific, put general location in country field
-- If duration isn't clear, make it a single-day event (start = end)
-- Use meaningful event_id values that group related events
-- Create parent-child relationships for related events (e.g., "University Studies" as parent, individual courses as children)
+**Advanced Structure Examples:**
+
+**Example 1 - Starting a Job:**
+```
+"Started Career at Meta",2020-08-01,2020-08-01,life,Career,,True,False,,career_meta_start,Menlo Park,USA,First day at Meta
+"Career at Meta",2020-08-01,2024-12-31,range,Career,,True,True,,career_meta_range,Menlo Park,USA,Full-time Software Engineer role
+"Promoted to Senior Engineer at Meta",2022-01-01,2022-01-01,milestone,Career,,True,False,career_meta_range,career_meta_promo1,Menlo Park,USA,Promotion within Meta career
+```
+
+**Example 2 - University Studies:**
+```
+"Started University at UC Berkeley",2016-08-15,2016-08-15,life,Education,,True,False,,edu_ucb_start,Berkeley,USA,First day of university
+"University Studies - Computer Science at UC Berkeley",2016-08-15,2020-05-15,range,Education,,True,True,,edu_ucb_range,Berkeley,USA,Bachelor's degree program
+"Senior Capstone Project",2020-01-15,2020-05-15,range,Education,,False,False,edu_ucb_range,edu_ucb_capstone,Berkeley,USA,Final project for degree
+"Graduated with Computer Science Degree",2020-05-15,2020-05-15,milestone,Education,,True,False,edu_ucb_range,edu_ucb_graduation,Berkeley,USA,Degree completion
+```
+
+**Parent-Child Relationship Rules:**
+- Career ranges (jobs) should have milestone children (promotions, achievements, projects)
+- Education ranges should have milestone children (graduations, project completions)
+- Living locations can have various children (events that happened there)
+- Travel ranges can have milestone children (specific experiences, arrivals)
+
+**Event ID Naming Convention:**
+- Use descriptive prefixes: `career_`, `edu_`, `travel_`, `personal_`, `proj_`
+- Include organization/location: `career_meta_`, `edu_ucb_`, `travel_japan_`
+- Add action suffix: `_start`, `_range`, `_promo1`, `_graduation`
+
+**Field Guidelines:**
+- **title**: Clear, specific event name
+- **start/end**: YYYY-MM-DD format (end = start for single-day events)
+- **category**: "Career", "Education", "Travel", "Personal", "Projects", "Health", "Relationships"
+- **isImportant**: true for major life events, promotions, graduations, births, deaths, moves
+- **isParent**: true for range events that have sub-events (jobs, education periods, long projects)
+- **parent_id**: event_id of the parent range event for milestones and sub-events
+- **location_city/country**: Where the event occurred
+- **metadata**: Additional context, role details, significance
+
+**Processing Instructions:**
+1. Identify all major life transitions and create dual life+range events
+2. Find milestone events within ongoing periods and link them as children
+3. Create meaningful parent-child hierarchies
+4. Use consistent event_id naming that shows relationships
+5. Mark truly significant events as important
+6. If dates are unclear, ask for clarification rather than guessing
 
 **My Story:**
 [PASTE YOUR STORY HERE]
 
-Please ask clarifying questions if any important details are missing, then provide the CSV output ready for copy and also import (actual .csv file).</div>
+Please analyze the story carefully, create the sophisticated dual-event structure for major transitions, establish proper parent-child relationships, and provide the complete CSV output ready for import.</div>
         </div>
 
 

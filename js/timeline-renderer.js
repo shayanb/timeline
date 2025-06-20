@@ -2,7 +2,7 @@
 // This module contains all functions related to rendering the main timeline view
 
 import { formatDate, formatMonth, calculatePosition, calculateWidth, sortByDate, groupByCategory, calculateEventRow, getMonthsBetween } from './utils.js';
-import { setUnsavedChanges, DEFAULT_MILESTONE_EMOJI } from './config.js';
+import { setUnsavedChanges, DEFAULT_MILESTONE_EMOJI, debugLog } from './config.js';
 
 // Timeline state
 let currentStartDate = null;
@@ -699,7 +699,7 @@ export function updateTimeline(events, startDate, endDate, editEventCallback) {
   // Render today marker
   renderTodayMarker(timeline, startDate, endDate);
   
-  console.log(`Timeline updated with ${events.length} events between ${formatDate(startDate)} and ${formatDate(endDate)}`);
+  debugLog(`Timeline updated with ${events.length} events between ${formatDate(startDate)} and ${formatDate(endDate)}`);
 }
 
 /**
@@ -765,8 +765,13 @@ function setupEventTooltip(eventDiv, event, tooltip) {
   });
   
   eventDiv.addEventListener('mousemove', (e) => {
+    // Position tooltip above the cursor to avoid being covered by hover elements
+    const tooltipHeight = tooltip.offsetHeight || 50; // Use actual height or fallback
+    const preferredTop = e.pageY - 15 - tooltipHeight;
+    const finalTop = preferredTop < 10 ? e.pageY + 15 : preferredTop;
+    
     tooltip.style.left = `${e.pageX + 10}px`;
-    tooltip.style.top = `${e.pageY + 10}px`;
+    tooltip.style.top = `${finalTop}px`;
   });
   
   eventDiv.addEventListener('mouseleave', () => {

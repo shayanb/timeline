@@ -3,7 +3,7 @@
 
 import { eventsToCSV, parseFileContent, processImportedData, compareEvents, createTestEvents, normalizeValue, areValuesEqual } from './data-manager.js';
 import { randomColor } from './utils.js';
-import { isDevelopmentMode } from './config.js';
+import { isDevelopmentMode, setDebugMode } from './config.js';
 
 /**
  * Test parent-child relationship preservation through CSV import/export
@@ -414,7 +414,10 @@ export function initializeDevelopmentTests(updateCallback) {
   runTestsBtn.style.display = 'inline-block';
   runTestsBtn.addEventListener('click', async (e) => {
     e.preventDefault();
-    console.log('🧪 Running import/export tests...');
+    
+    // Enable debug mode for test runs
+    setDebugMode(true);
+    console.log('🧪 Running import/export tests... (Debug mode enabled - check console for details)');
     
     try {
       const results = await testComprehensiveImportExport();
@@ -444,7 +447,7 @@ function displayTestResults(results) {
   if (results.yamlToCsv.success && results.csvToCsv.success) {
     resultsDiv.classList.add('positive');
     resultsDiv.innerHTML = `
-      <div class="header">✅ All tests passed!</div>
+      <div class="header">✅ All tests passed! + debug mode enabled, see console.</div>
       <p>YAML ↔ CSV and CSV ↔ CSV import/export tests completed successfully.</p>
     `;
   } else {

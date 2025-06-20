@@ -28,106 +28,146 @@ import {
  * @returns {Object} Object containing mapped events and updated nextId
  */
 export function processImportedData(data, nextId) {
+  if (!Array.isArray(data)) {
+    throw new Error('processImportedData expects an array of events');
+  }
+  
+  if (data.length === 0) {
+    console.warn('processImportedData received empty data array');
+    return { mappedEvents: [], nextId };
+  }
+  
+  console.log(`Processing ${data.length} imported events...`);
+  
   // First pass: Map imported events with properties
-  const mappedEvents = data.map(ev => {
-    const type = ev.type || (ev.life_event ? 'life' : 'range');
-    const start = new Date(ev.start);
-    const end = (type === 'range') ? new Date(ev.end || ev.start) : new Date(ev.start);
-    const color = ev.color || randomColor();
-    const metadata = (ev.metadata && ev.metadata !== '') ? ev.metadata : null;
-    // Only use explicit category; don't fall back to parent ID
-    // Convert empty string to null for proper comparison
-    const category = (ev.category && ev.category !== '') ? ev.category : null;
-    const place = ev.place || null;
-    
-    // Convert boolean fields with robust type handling
-    const isImportant = typeof ev.isImportant === 'boolean' ? ev.isImportant :
-                       (ev.isImportant === 'true' || ev.isImportant === '1');
-                       
-    const isParent = typeof ev.isParent === 'boolean' ? ev.isParent :
-                    (ev.isParent === 'true' || ev.isParent === '1');
-                    
-    const categoryBgColor = ev.categoryBgColor || null;
-    
-    // Handle row number with improved null handling
-    let row = null;
-    if (ev.row !== undefined && ev.row !== null) {
-      if (typeof ev.row === 'number') {
-        row = ev.row;
-      } else if (typeof ev.row === 'string') {
-        if (ev.row !== '' && !isNaN(Number(ev.row))) {
-          row = Number(ev.row);
+  const mappedEvents = data.map((ev, index) => {
+    try {
+      if (!ev || typeof ev !== 'object') {
+        throw new Error(`Event at index ${index} is not a valid object`);
+      }
+      
+      if (!ev.title || typeof ev.title !== 'string') {
+        throw new Error(`Event at index ${index} missing required title field`);
+      }
+      
+      if (!ev.start) {
+        throw new Error(`Event at index ${index} (${ev.title}) missing required start date`);
+      }
+      
+      const type = ev.type || (ev.life_event ? 'life' : 'range');
+      const start = new Date(ev.start);
+      
+      // Validate date
+      if (isNaN(start.getTime())) {
+        throw new Error(`Event at index ${index} (${ev.title}) has invalid start date: ${ev.start}`);
+      }
+      
+      const end = (type === 'range') ? new Date(ev.end || ev.start) : new Date(ev.start);
+      
+      // Validate end date for range events
+      if (type === 'range' && isNaN(end.getTime())) {
+        throw new Error(`Event at index ${index} (${ev.title}) has invalid end date: ${ev.end}`);
+      }
+      
+      const color = ev.color || randomColor();
+      const metadata = (ev.metadata && ev.metadata !== '') ? ev.metadata : null;
+      // Only use explicit category; don't fall back to parent ID
+      // Convert empty string to null for proper comparison
+      const category = (ev.category && ev.category !== '') ? ev.category : null;
+      const place = ev.place || null;
+      
+      // Convert boolean fields with robust type handling
+      const isImportant = typeof ev.isImportant === 'boolean' ? ev.isImportant :
+                         (ev.isImportant === 'true' || ev.isImportant === '1');
+                         
+      const isParent = typeof ev.isParent === 'boolean' ? ev.isParent :
+                      (ev.isParent === 'true' || ev.isParent === '1');
+                      
+      const categoryBgColor = ev.categoryBgColor || null;
+      
+      // Handle row number with improved null handling
+      let row = null;
+      if (ev.row !== undefined && ev.row !== null) {
+        if (typeof ev.row === 'number') {
+          row = ev.row;
+        } else if (typeof ev.row === 'string') {
+          if (ev.row !== '' && !isNaN(Number(ev.row))) {
+            row = Number(ev.row);
+          }
         }
       }
-    }
-    
-    // Track if this row came from imported data (custom) vs auto-assigned
-    const _customRow = row !== null;
-    
-    // Handle location data in various formats
-    let location = null;
-    
-    // Handle separated location_city and location_country fields (CSV import format)
-    if (ev.location_city !== undefined || ev.location_country !== undefined) {
-      location = {
-        city: ev.location_city || '',
-        country: ev.location_country || ''
-      };
-    }
-    // Handle standard location object
-    else if (ev.location) {
-      // Handle object location format
-      if (typeof ev.location === 'object') {
+      
+      // Track if this row came from imported data (custom) vs auto-assigned
+      const _customRow = row !== null;
+      
+      // Handle location data in various formats
+      let location = null;
+      
+      // Handle separated location_city and location_country fields (CSV import format)
+      if (ev.location_city !== undefined || ev.location_country !== undefined) {
         location = {
-          city: ev.location.city || '',
-          country: ev.location.country || ''
-        };
-      } 
-      // Handle string location format
-      else if (typeof ev.location === 'string') {
-        location = {
-          city: '',
-          country: ev.location
+          city: ev.location_city || '',
+          country: ev.location_country || ''
         };
       }
-    }
-    // Fallback to place field (legacy format)
-    else if (place) {
-      location = {
-        city: '',
-        country: place
-      };
-    }
-    
-    // Generate event ID if not provided - important for parent-child relationships
-    // Convert ev.id to string if it exists, otherwise generate a new UUID
-    const eventId = ev.id ? String(ev.id) : 
-                    ev.eventId ? String(ev.eventId) : 
-                    crypto.randomUUID();
+      // Handle standard location object
+      else if (ev.location) {
+        // Handle object location format
+        if (typeof ev.location === 'object') {
+          location = {
+            city: ev.location.city || '',
+            country: ev.location.country || ''
+          };
+        } 
+        // Handle string location format
+        else if (typeof ev.location === 'string') {
+          location = {
+            city: '',
+            country: ev.location
+          };
+        }
+      }
+      // Fallback to place field (legacy format)
+      else if (place) {
+        location = {
+          city: '',
+          country: place
+        };
+      }
+      
+      // Generate event ID if not provided - important for parent-child relationships
+      // Convert ev.id to string if it exists, otherwise generate a new UUID
+      const eventId = ev.id ? String(ev.id) : 
+                      ev.eventId ? String(ev.eventId) : 
+                      'event_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
-    // Get the parent ID from various possible fields
-    const parentId = ev.parentId || null;
+      // Get the parent ID from various possible fields
+      const parentId = ev.parentId || null;
     
-    return { 
-      id: nextId++, 
-      eventId,
-      title: ev.title, 
-      start, 
-      end, 
-      type, 
-      color, 
-      metadata, 
-      category, 
-      place,  // Keep for backward compatibility
-      location, // Add normalized location data
-      isImportant,
-      isParent,
-      row,
-      _customRow,
-      categoryBgColor,
-      // Raw parent identifier from CSV/YAML (string key)
-      parentId
-    };
+      return { 
+        id: nextId++, 
+        eventId,
+        title: ev.title, 
+        start, 
+        end, 
+        type, 
+        color, 
+        metadata, 
+        category, 
+        place,  // Keep for backward compatibility
+        location, // Add normalized location data
+        isImportant,
+        isParent,
+        row,
+        _customRow,
+        categoryBgColor,
+        // Raw parent identifier from CSV/YAML (string key)
+        parentId
+      };
+    } catch (error) {
+      console.error(`Error processing event at index ${index}:`, error.message);
+      throw new Error(`Failed to process event ${index}: ${error.message}`);
+    }
   });
   
   // Log event IDs for debugging
@@ -167,6 +207,8 @@ export function processImportedData(data, nextId) {
       eventsByCategory[category].push(event);
     }
   });
+  
+  console.log(`✅ Successfully processed ${mappedEvents.length} events`);
   
   return {
     mappedEvents,
@@ -1023,7 +1065,7 @@ export async function testComprehensiveImportExport() {
       }
       
       // Use existing ID or generate a new one
-      const eventId = ev.id || crypto.randomUUID();
+      const eventId = ev.id || 'event_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
       
       return {
         id: idx + 1,
@@ -1169,7 +1211,7 @@ export async function testComprehensiveImportExport() {
       };
       
       // Use existing eventId or generate one
-      const eventId = ev.eventId || crypto.randomUUID();
+      const eventId = ev.eventId || 'event_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
       
       // Convert boolean strings
       const isImportant = ev.isImportant === 'true' || ev.isImportant === true;

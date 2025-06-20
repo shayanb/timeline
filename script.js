@@ -6,7 +6,8 @@ import {
   // Configuration and constants
   APP_VERSION, COPYRIGHT, DEFAULT_MILESTONE_EMOJI,
   updateModificationStatus, setUnsavedChanges, getUnsavedChanges,
-  initializePNGExport, initializeAppMetadata, isDevelopmentMode
+  initializePNGExport, initializeAppMetadata, isDevelopmentMode,
+  setDebugMode, isDebugMode, debugLog, infoLog
 } from './js/config.js';
 
 import { 
@@ -86,7 +87,13 @@ let endDate = new Date(2025, 11, 31);
 // =============================================================================
 
 document.addEventListener('DOMContentLoaded', async () => {
-  console.log('Initializing Timeline Application...');
+  // Enable debug mode in development
+  if (isDevelopmentMode()) {
+    setDebugMode(true);
+    debugLog('🐛 Development mode detected - debug logging enabled');
+  }
+  
+  infoLog('🚀 Initializing Timeline Application...');
   
   // Initialize app metadata (version and copyright)
   initializeAppMetadata();
@@ -103,7 +110,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize world data for visualizations
   try {
     await initializeWorldData();
-    console.log('World geographic data loaded successfully');
+    debugLog('World geographic data loaded successfully');
   } catch (error) {
     console.warn('Failed to load world geographic data:', error);
   }
@@ -115,17 +122,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
   
   // Initialize development features if in development mode
+  debugLog('🔄 Initializing development features...');
   initializeDevelopmentTests(update);
   
   // Load initial data
-  console.log('About to load initial data...');
+  debugLog('🔄 About to load initial data...');
   await loadInitialData();
-  console.log('Data loaded, now calling update()...');
+  debugLog('✅ Initial data loading completed');
   
   // Initial render
+  debugLog('🔄 Performing initial render...');
   update();
   
-  console.log('Timeline Application initialized successfully');
+  infoLog('✅ Timeline Application initialized successfully');
+  debugLog('🎯 Application ready for user interaction');
 });
 
 // =============================================================================
@@ -192,41 +202,45 @@ function setupEventListeners() {
 async function loadInitialData() {
   try {
     const response = await fetch('data/events.yaml');
-    const yamlText = await response.text();
+    if (!response.ok) return;
     
-    if (typeof jsyaml !== 'undefined') {
-      const yamlData = jsyaml.load(yamlText);
-      if (Array.isArray(yamlData)) {
-        const result = processImportedData(yamlData, nextId);
-        events = result.mappedEvents;
-        nextId = result.nextId;
-        
-        // Update event manager with loaded events
-        setEvents(events);
-        
-        // Update date range based on loaded events
-        updateDateRangeFromEvents();
-        
-        // Force reset of timeline state to use new date range
-        if (window.timelineState) {
-          console.log('Resetting timeline state with new date range');
-          window.timelineState.currentStartDate = new Date(startDate);
-          window.timelineState.currentEndDate = new Date(endDate);
-          window.timelineState.originalStartDate = new Date(startDate);
-          window.timelineState.originalEndDate = new Date(endDate);
-          window.timelineState.isZoomed = false;
-        }
-        
-        console.log(`Loaded ${events.length} events from data/events.yaml`);
-        
-        // Force an immediate update after data loading
-        console.log('Forcing timeline update after data load...');
-        update();
+    const yamlText = await response.text();
+    if (!yamlText || yamlText.trim().length === 0) return;
+    
+    if (typeof jsyaml === 'undefined') {
+      console.warn('js-yaml library not loaded, skipping initial data');
+      return;
+    }
+    
+    const yamlData = jsyaml.load(yamlText);
+    if (Array.isArray(yamlData)) {
+      const result = processImportedData(yamlData, nextId);
+      events = result.mappedEvents;
+      nextId = result.nextId;
+      
+      // Update event manager with loaded events
+      setEvents(events);
+      
+      // Update date range based on loaded events
+      updateDateRangeFromEvents();
+      
+      // Force reset of timeline state to use new date range
+      if (window.timelineState) {
+        window.timelineState.currentStartDate = new Date(startDate);
+        window.timelineState.currentEndDate = new Date(endDate);
+        window.timelineState.originalStartDate = new Date(startDate);
+        window.timelineState.originalEndDate = new Date(endDate);
+        window.timelineState.isZoomed = false;
       }
+      
+      infoLog(`📊 Loaded ${events.length} events from data/events.yaml`);
+      
+      // Force an immediate update after data loading
+      update();
     }
   } catch (error) {
-    console.log('No initial data file found or error loading:', error.message);
-    console.log('Starting with empty timeline');
+    debugLog('No initial data file found or error loading:', error.message);
+    infoLog('📝 Starting with empty timeline');
   }
 }
 
@@ -234,7 +248,7 @@ async function loadInitialData() {
  * Update date range based on current events to center them in the timeline
  */
 function updateDateRangeFromEvents() {
-  console.log('updateDateRangeFromEvents called with', events.length, 'events');
+  debugLog('updateDateRangeFromEvents called with', events.length, 'events');
   if (events.length === 0) return;
   
   const dates = events.map(e => e.start).concat(
@@ -243,7 +257,7 @@ function updateDateRangeFromEvents() {
   
   const minDate = new Date(Math.min(...dates));
   const maxDate = new Date(Math.max(...dates));
-  console.log('Date range calculated:', formatDate(minDate), 'to', formatDate(maxDate));
+  debugLog('Date range calculated:', formatDate(minDate), 'to', formatDate(maxDate));
   
   // Calculate the actual data range
   const dataRange = maxDate.getTime() - minDate.getTime();
@@ -268,7 +282,7 @@ function updateDateRangeFromEvents() {
   startDate = new Date(minDate.getTime() - (paddingDays * dayInMs));
   endDate = new Date(maxDate.getTime() + (paddingDays * dayInMs));
   
-  console.log(`Auto-scaled timeline: ${formatDate(startDate)} to ${formatDate(endDate)} (data: ${formatDate(minDate)} to ${formatDate(maxDate)})`);
+  debugLog(`Auto-scaled timeline: ${formatDate(startDate)} to ${formatDate(endDate)} (data: ${formatDate(minDate)} to ${formatDate(maxDate)})`);
 }
 
 // =============================================================================
@@ -299,24 +313,59 @@ async function handleImportFile(event) {
   const file = event.target.files[0];
   if (!file) return;
   
+  debugLog(`🔄 Starting import of file: ${file.name} (${file.size} bytes)`);
+  
   try {
-    const fileContent = await readFile(file);
+    // Check file type
     const fileType = getFileExtension(file.name);
+    debugLog(`📄 File type detected: ${fileType}`);
     
+    if (!['yaml', 'yml', 'csv'].includes(fileType)) {
+      throw new Error(`Unsupported file type: ${fileType}. Please use YAML or CSV files.`);
+    }
+    
+    // Check dependencies for YAML files
+    if ((fileType === 'yaml' || fileType === 'yml') && typeof jsyaml === 'undefined') {
+      throw new Error('YAML parser not loaded. Please refresh the page and try again.');
+    }
+    
+    debugLog('🔄 Reading file content...');
+    const fileContent = await readFile(file);
+    
+    if (!fileContent || fileContent.trim().length === 0) {
+      throw new Error('File is empty or could not be read');
+    }
+    
+    debugLog(`✅ File content read (${fileContent.length} characters)`);
+    
+    debugLog('🔄 Parsing file content...');
     const data = parseFileContent(fileContent, fileType);
+    
+    if (!Array.isArray(data) || data.length === 0) {
+      throw new Error('No valid events found in file');
+    }
+    
+    debugLog(`✅ File parsed successfully, found ${data.length} events`);
+    
+    debugLog('🔄 Processing imported data...');
     const result = processImportedData(data, nextId);
     
     // Replace existing events with imported data
     events = result.mappedEvents;
     nextId = result.nextId;
     
+    debugLog(`✅ Data processed: ${events.length} events imported`);
+    
     // Update event manager
+    debugLog('🔄 Updating event manager...');
     setEvents(events);
     
     // Update date range
+    debugLog('🔄 Updating date range...');
     updateDateRangeFromEvents();
     
     // Show import stats
+    debugLog('🔄 Showing import statistics...');
     showImportStats(result.mappedEvents, fileType);
     
     // Mark as having unsaved changes
@@ -324,12 +373,16 @@ async function handleImportFile(event) {
     updateModificationStatus();
     
     // Re-render timeline
+    debugLog('🔄 Re-rendering timeline...');
     update();
     
-    console.log(`Successfully imported ${result.mappedEvents.length} events`);
+    infoLog(`✅ Successfully imported ${result.mappedEvents.length} events from ${file.name}`);
+    
   } catch (error) {
-    console.error('Import failed:', error);
-    alert(`Import failed: ${error.message}`);
+    const errorMsg = `❌ Import failed: ${error.message}`;
+    console.error(errorMsg, error);
+    alert(`Import failed: ${error.message}\n\nPlease check the file format and try again.`);
+    debugLog('❌ Import operation failed');
   }
   
   // Clear the file input
@@ -484,7 +537,7 @@ function handleTypeChange() {
  * Main update function - renders the entire timeline
  */
 function update() {
-  console.log('Updating timeline...');
+  debugLog('Updating timeline...');
   
   // Get current timeline state for zoom/pan
   const timelineState = getTimelineState();
@@ -494,7 +547,7 @@ function update() {
   if (!timelineState || !timelineState.isZoomed) {
     currentStartDate = startDate;
     currentEndDate = endDate;
-    console.log('Using calculated date range:', formatDate(currentStartDate), 'to', formatDate(currentEndDate));
+    debugLog('Using calculated date range:', formatDate(currentStartDate), 'to', formatDate(currentEndDate));
     
     // Update timeline state to match our calculated range
     if (timelineState) {
@@ -505,7 +558,7 @@ function update() {
     // Use zoomed/panned dates when available
     currentStartDate = timelineState.currentStartDate || startDate;
     currentEndDate = timelineState.currentEndDate || endDate;
-    console.log('Using timeline state dates:', formatDate(currentStartDate), 'to', formatDate(currentEndDate));
+    debugLog('Using timeline state dates:', formatDate(currentStartDate), 'to', formatDate(currentEndDate));
   }
   
   // Update timeline using the timeline renderer
@@ -530,7 +583,7 @@ function update() {
   const timelineContainer = document.getElementById('timeline-container');
   const monthDisplay = document.getElementById('current-month-display');
   if (timelineContainer && !timelineContainer.dataset.panInitialized) {
-    console.log('Initializing zoom controls and scroll wheel zoom...');
+    debugLog('Initializing zoom controls and scroll wheel zoom...');
     timelineContainer.dataset.panInitialized = 'true';
     initializeZoomAndPan(
       timelineContainer, 
@@ -544,7 +597,7 @@ function update() {
   // Drag functionality - Working implementation  
   const timelineDiv = document.getElementById('timeline');
   if (timelineDiv && !timelineDiv.dataset.directDragSetup) {
-    console.log('Setting up drag functionality on timeline');
+    debugLog('Setting up drag functionality on timeline');
     timelineDiv.dataset.directDragSetup = 'true';
     timelineDiv.style.cursor = 'grab';
     timelineDiv.title = 'Drag to pan timeline';
@@ -564,7 +617,7 @@ function update() {
     }
     
     timelineDiv.addEventListener('mousedown', function(e) {
-      console.log('Starting drag operation');
+      debugLog('Starting drag operation');
       
       // Skip interactive elements
       if (e.target.closest('.action-button') || 
@@ -630,7 +683,7 @@ function update() {
     
     document.addEventListener('mouseup', function() {
       if (isDragging) {
-        console.log('Mouse up - ending drag');
+        debugLog('Mouse up - ending drag');
         isDragging = false;
         timelineDiv.style.cursor = 'grab';
         
@@ -640,7 +693,7 @@ function update() {
     });
   }
   
-  console.log(`Timeline updated with ${events.length} events`);
+  debugLog(`Timeline updated with ${events.length} events`);
 }
 
 // =============================================================================

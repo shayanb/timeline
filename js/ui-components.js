@@ -633,9 +633,17 @@ export function initializeTooltip() {
       tooltip
         .style('opacity', 1)
         .style('display', 'block')
-        .html(content)
+        .html(content);
+      
+      // Position tooltip above cursor to avoid being covered by hover elements
+      const tooltipNode = tooltip.node();
+      const tooltipHeight = tooltipNode.offsetHeight || 50;
+      const preferredTop = event.pageY - 15 - tooltipHeight;
+      const finalTop = preferredTop < 10 ? event.pageY + 15 : preferredTop;
+      
+      tooltip
         .style('left', `${event.pageX + 10}px`)
-        .style('top', `${event.pageY + 10}px`);
+        .style('top', `${finalTop}px`);
     },
     
     hide: () => {
@@ -643,9 +651,15 @@ export function initializeTooltip() {
     },
     
     update: (event) => {
+      // Position tooltip above cursor to avoid being covered by hover elements
+      const tooltipNode = tooltip.node();
+      const tooltipHeight = tooltipNode.offsetHeight || 50;
+      const preferredTop = event.pageY - 15 - tooltipHeight;
+      const finalTop = preferredTop < 10 ? event.pageY + 15 : preferredTop;
+      
       tooltip
         .style('left', `${event.pageX + 10}px`)
-        .style('top', `${event.pageY + 10}px`);
+        .style('top', `${finalTop}px`);
     }
   };
 }
@@ -1425,7 +1439,7 @@ export function initializeDevelopmentFeatures() {
           
           if (results.yamlToCsv.success && results.csvToCsv.success) {
             resultsDiv.classList.add('positive');
-            resultsDiv.innerHTML = '<div class="header">✅ All tests passed!</div>' +
+            resultsDiv.innerHTML = '<div class="header">✅ All tests passed! + debug mode enabled, see console.</div>' +
                                   '<p>YAML ↔ CSV and CSV ↔ CSV import/export tests completed successfully.</p>';
           } else {
             resultsDiv.classList.add('negative');

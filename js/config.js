@@ -10,6 +10,7 @@ export const DEFAULT_MILESTONE_EMOJI = '📍';
 
 // Global application state
 let hasUnsavedChanges = false;
+let debugMode = false;
 
 // Function to update modification status
 export function updateModificationStatus() {
@@ -66,4 +67,28 @@ export function isDevelopmentMode() {
   return window.location.hostname === 'localhost' || 
          window.location.hostname === '127.0.0.1' ||
          window.location.search.includes('debug=true');
+}
+
+// Debug mode controls
+export function setDebugMode(enabled) {
+  debugMode = enabled;
+  if (enabled) {
+    console.log('🐛 Debug mode enabled - detailed console logging active');
+  }
+}
+
+export function isDebugMode() {
+  return debugMode || isDevelopmentMode();
+}
+
+// Enhanced console logging functions
+export function debugLog(...args) {
+  if (isDebugMode()) {
+    console.log(...args);
+  }
+}
+
+export function infoLog(...args) {
+  // Always log important events
+  console.log(...args);
 }
