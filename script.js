@@ -483,7 +483,7 @@ function handleClearAll() {
     nextId = 1;
     setEvents(events);
     update();
-    console.log('All data cleared');
+    infoLog('🗑️ All data cleared');
   }
 }
 
@@ -748,4 +748,4 @@ window.addEventListener('unhandledrejection', (event) => {
   console.error('Unhandled Promise Rejection:', event.reason);
 });
 
-console.log('Timeline Application script loaded successfully');
+debugLog('Timeline Application script loaded successfully');

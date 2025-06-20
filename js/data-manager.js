@@ -14,7 +14,7 @@ import {
 } from './utils.js';
 
 import { 
-  isDevelopmentMode 
+  isDevelopmentMode, debugLog, infoLog 
 } from './config.js';
 
 // =============================================================================
@@ -37,7 +37,7 @@ export function processImportedData(data, nextId) {
     return { mappedEvents: [], nextId };
   }
   
-  console.log(`Processing ${data.length} imported events...`);
+  infoLog(`📥 Processing ${data.length} imported events...`);
   
   // First pass: Map imported events with properties
   const mappedEvents = data.map((ev, index) => {
@@ -171,7 +171,7 @@ export function processImportedData(data, nextId) {
   });
   
   // Log event IDs for debugging
-  console.log('Imported events with IDs:', mappedEvents.map(e => ({ 
+  debugLog('Imported events with IDs:', mappedEvents.map(e => ({ 
     title: e.title, 
     eventId: e.eventId, 
     parentId: e.parentId 
@@ -187,7 +187,7 @@ export function processImportedData(data, nextId) {
       );
       
       if (parent) {
-        console.log(`Resolved parentId ${evt.parentId} for "${evt.title}" to internal id ${parent.id}`);
+        debugLog(`Resolved parentId ${evt.parentId} for "${evt.title}" to internal id ${parent.id}`);
         evt.parent = parent.id;
       } else {
         console.warn(`Could not find parent with eventId ${evt.parentId} for "${evt.title}"`);
@@ -208,7 +208,7 @@ export function processImportedData(data, nextId) {
     }
   });
   
-  console.log(`✅ Successfully processed ${mappedEvents.length} events`);
+  infoLog(`✅ Successfully processed ${mappedEvents.length} events`);
   
   return {
     mappedEvents,
@@ -813,7 +813,7 @@ export function createTestEvents() {
  * @returns {boolean} True if all relationships are preserved
  */
 export function testParentChildPreservation(testEvents) {
-  console.log('Running parent-child relationship preservation test...');
+  debugLog('Running parent-child relationship preservation test...');
   
   // Convert to internal event format
   const internalEvents = testEvents.map((ev, idx) => {
@@ -909,7 +909,7 @@ export function testParentChildPreservation(testEvents) {
   });
   
   if (allRelationshipsPreserved) {
-    console.log('✅ All parent-child relationships preserved successfully!');
+    infoLog('✅ All parent-child relationships preserved successfully!');
   } else {
     console.error('❌ Some parent-child relationships were not preserved correctly.');
   }
@@ -1313,7 +1313,7 @@ export async function testComprehensiveImportExport() {
     
     // Report overall test results
     if (testResults.yamlToCsv.success && testResults.csvToCsv.success) {
-      console.log('🎉 All import/export tests passed successfully!');
+      infoLog('🎉 All import/export tests passed successfully!');
     } else {
       console.error('⚠️ Some import/export tests failed. See details above.');
       

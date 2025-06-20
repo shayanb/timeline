@@ -3,7 +3,7 @@
 
 import { eventsToCSV, parseFileContent, processImportedData, compareEvents, createTestEvents, normalizeValue, areValuesEqual } from './data-manager.js';
 import { randomColor } from './utils.js';
-import { isDevelopmentMode, setDebugMode } from './config.js';
+import { isDevelopmentMode, setDebugMode, isDebugMode, debugLog, infoLog } from './config.js';
 
 /**
  * Test parent-child relationship preservation through CSV import/export
@@ -402,33 +402,45 @@ function createTestCSVData() {
 }
 
 /**
- * Initialize development test features
+ * Initialize test mode button (always available)
  * @param {Function} updateCallback - Function to call after tests complete
  */
 export function initializeDevelopmentTests(updateCallback) {
-  if (!isDevelopmentMode()) return;
-  
   const runTestsBtn = document.getElementById('run-tests');
   if (!runTestsBtn) return;
   
+  // Always show the test button
   runTestsBtn.style.display = 'inline-block';
+  
   runTestsBtn.addEventListener('click', async (e) => {
     e.preventDefault();
     
-    // Enable debug mode for test runs
-    setDebugMode(true);
-    console.log('🧪 Running import/export tests... (Debug mode enabled - check console for details)');
+    // Toggle debug mode and run tests
+    const wasDebugMode = isDebugMode();
+    setDebugMode(!wasDebugMode);
     
-    try {
-      const results = await testComprehensiveImportExport();
-      displayTestResults(results);
+    if (!wasDebugMode) {
+      // Just enabled debug mode
+      infoLog('🧪 Test mode enabled - Debug logging activated');
+      runTestsBtn.textContent = '[Debug Mode ON]';
+      runTestsBtn.style.color = '#22c55e';
       
-      if (updateCallback) {
-        updateCallback();
+      try {
+        const results = await testComprehensiveImportExport();
+        displayTestResults(results);
+        
+        if (updateCallback) {
+          updateCallback();
+        }
+      } catch (error) {
+        console.error('Test execution failed:', error);
+        displayTestError(error);
       }
-    } catch (error) {
-      console.error('Test execution failed:', error);
-      displayTestError(error);
+    } else {
+      // Just disabled debug mode
+      infoLog('🔇 Test mode disabled - Debug logging deactivated');
+      runTestsBtn.textContent = '[Test Mode]';
+      runTestsBtn.style.color = '#888';
     }
   });
 }
