@@ -2,6 +2,23 @@
 
 Interactive web application to create and visualize timelines.
 
+
+Features
+--------
+- Add events with title, start date, end date, color, and metadata.
+- Visual multi-row timeline with colored bars.
+- Hover over events to view details.
+- Mark life events/anniversaries using the "Life Event" checkbox (renders as vertical lines).
+- Randomized color is assigned to the next event input after each addition.
+- Scrollable and zoomable timeline navigation.
+- Load predefined events from `data/events.yaml` on startup.
+- Define parent/child relationships in YAML or via UI to split and merge event bars for nested timelines.
+- Edit existing events by clicking on their bars; a popup form appears with animation for in-place editing.
+- Add new events using the "+" button below the chart, which opens the event form.
+- UI styled with Semantic UI framework for responsive components.
+
+
+
 ## Project Structure
 
 This application has been refactored into a modular architecture for better maintainability and development experience:
@@ -36,20 +53,6 @@ timeline/
     ├── events.yaml       # Default timeline events
     └── ...              # Other data files
 ```
-
-Features
---------
-- Add events with title, start date, end date, color, and metadata.
-- Visual multi-row timeline with colored bars.
-- Hover over events to view details.
-- Mark life events/anniversaries using the "Life Event" checkbox (renders as vertical lines).
-- Randomized color is assigned to the next event input after each addition.
-- Scrollable and zoomable timeline navigation.
-- Load predefined events from `data/events.yaml` on startup.
-- Define parent/child relationships in YAML or via UI to split and merge event bars for nested timelines.
-- Edit existing events by clicking on their bars; a popup form appears with animation for in-place editing.
-- Add new events using the "+" button below the chart, which opens the event form.
-- UI styled with Semantic UI framework for responsive components.
 
 Getting Started
 ---------------
