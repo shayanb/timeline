@@ -57,33 +57,66 @@
 
 .month-column {
   border-right: 1px solid #e5e7eb;
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 20px; /* Extra space for angled labels at top */
 }
 
 .month-label {
   position: absolute;
-  bottom: 0;
+  top: 5px;
   left: 50%;
-  transform: translateX(-50%);
-  font-size: 10px;
-  color: #6b7280;
+  transform: translateX(-50%) rotate(-45deg);
+  transform-origin: center top;
+  font-size: 9px;
+  color: #4a5568;
   white-space: nowrap;
   text-transform: uppercase;
-  font-weight: 500;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.9);
+  padding: 2px 5px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  min-width: fit-content;
+  z-index: 10;
+  line-height: 1.2;
 }
 
-.year-label {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 11px;
-  color: #4b5563;
-  white-space: nowrap;
-  font-weight: 600;
-  background-color: rgba(255, 255, 255, 0.5);
-  padding: 1px 4px;
-  border-radius: 4px;
+/* Specific styling for day labels when very zoomed in */
+.month-column[data-type="day"] .month-label {
+  font-size: 8px;
+  padding: 1px 3px;
+  background: rgba(240, 248, 255, 0.95);
+  border-color: rgba(59, 130, 246, 0.2);
+  color: #1e40af;
 }
+
+/* Specific styling for week labels when moderately zoomed in */
+.month-column[data-type="week"] .month-label {
+  font-size: 8px;
+  padding: 1px 4px;
+  background: rgba(248, 250, 252, 0.95);
+  border-color: rgba(100, 116, 139, 0.2);
+  color: #334155;
+}
+
+/* Weekend styling for day view */
+.month-column[data-weekend="true"] {
+  background-color: rgba(254, 240, 240, 0.3);
+}
+
+.month-column[data-weekend="true"] .month-label {
+  background: rgba(254, 240, 240, 0.95);
+  border-color: rgba(239, 68, 68, 0.2);
+  color: #dc2626;
+}
+
+/* Year labels removed - now integrated into month labels */
 
 /* Today marker */
 .today-marker {
@@ -254,7 +287,7 @@
   right: 0;
   bottom: 0;
   z-index: 15;
-  overflow: visible;
+  overflow: hidden; /* Clip lifelines that extend outside the visible area */
 }
 
 .life-events-container .life-line {
@@ -264,35 +297,38 @@
 /* Container for life event labels */
 .life-labels-container {
   position: relative;
-  height: 100px;
+  height: 110px; /* Compact height for 3 levels */
   margin-top: 5px;
   overflow: visible;
   z-index: 20;
   margin-left: 180px; /* Match the timeline layout */
 }
 
-/* Life label styling - using a different approach for perfect alignment */
+/* Life label styling - multi-level with collision detection */
 .life-label.below-chart {
   position: absolute;
-  padding: 4px 8px;
-  font-size: 11px;
+  padding: 2px 5px;
+  font-size: 9px;
   white-space: nowrap;
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   color: white;
   cursor: pointer;
   transform: rotate(45deg);
   transform-origin: top left;
-  /* Add visible alignment marker */
-  border-top: 2px solid yellow;
-  /* Ensure consistent z-index */
   z-index: 12;
+  font-weight: 700;
+  min-width: 50px;
+  text-align: center;
+  backdrop-filter: blur(1px);
+  transition: all 0.2s ease;
 }
 
 .life-label.below-chart:hover {
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
-  opacity: 1;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+  transform: rotate(45deg) scale(1.05);
+  z-index: 15;
 }
 
 /* Timeline indicator for milestone positions */

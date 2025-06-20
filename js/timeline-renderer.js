@@ -45,30 +45,182 @@ export function initializeTimeline(container, startDate, endDate) {
  * @param {Date} endDate - Timeline end date
  */
 export function renderMonthHeaders(monthsContainer, startDate, endDate) {
+  monthsContainer.innerHTML = '';
+  
+  // Calculate time span to determine granularity
+  const timeSpan = endDate.getTime() - startDate.getTime();
+  const daysSpan = timeSpan / (1000 * 60 * 60 * 24);
+  
+  if (daysSpan <= 14) {
+    // Very zoomed in: Show days
+    renderDayHeaders(monthsContainer, startDate, endDate);
+  } else if (daysSpan <= 90) {
+    // Moderately zoomed in: Show weeks
+    renderWeekHeaders(monthsContainer, startDate, endDate);
+  } else {
+    // Normal zoom: Show months
+    renderMonthHeadersOriginal(monthsContainer, startDate, endDate);
+  }
+}
+
+/**
+ * Render day headers for very zoomed in view
+ */
+function renderDayHeaders(monthsContainer, startDate, endDate) {
+  const days = [];
+  const currentDate = new Date(startDate);
+  
+  while (currentDate <= endDate) {
+    days.push(new Date(currentDate));
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
+  days.forEach((day, index) => {
+    const dayDiv = document.createElement('div');
+    dayDiv.className = 'month-column'; // Reuse existing styling
+    dayDiv.setAttribute('data-type', 'day'); // For CSS styling
+    dayDiv.style.flex = '1';
+    dayDiv.style.minWidth = '40px';
+    dayDiv.style.position = 'relative';
+    
+    // Show every day, or every other day if too crowded
+    const shouldShowLabel = days.length <= 10 || index % 2 === 0;
+    
+    if (shouldShowLabel) {
+      const dayLabel = document.createElement('div');
+      dayLabel.className = 'month-label'; // Reuse existing styling
+      
+      // Add weekend styling
+      const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+      if (isWeekend) {
+        dayDiv.setAttribute('data-weekend', 'true');
+      }
+      
+      if (days.length <= 7) {
+        // Plenty of space: Full day format
+        dayLabel.textContent = day.toLocaleDateString('en', { 
+          weekday: 'short', 
+          month: 'short', 
+          day: 'numeric' 
+        });
+      } else {
+        // Compact: Just day number and month if it's the 1st
+        if (day.getDate() === 1) {
+          dayLabel.textContent = day.toLocaleDateString('en', { month: 'short', day: 'numeric' });
+        } else {
+          dayLabel.textContent = day.getDate().toString();
+        }
+      }
+      
+      dayDiv.appendChild(dayLabel);
+    }
+    
+    monthsContainer.appendChild(dayDiv);
+  });
+}
+
+/**
+ * Render week headers for moderately zoomed in view
+ */
+function renderWeekHeaders(monthsContainer, startDate, endDate) {
+  const weeks = [];
+  const currentDate = new Date(startDate);
+  
+  // Start from the beginning of the week
+  currentDate.setDate(currentDate.getDate() - currentDate.getDay());
+  
+  while (currentDate <= endDate) {
+    weeks.push(new Date(currentDate));
+    currentDate.setDate(currentDate.getDate() + 7);
+  }
+  
+  weeks.forEach((week, index) => {
+    const weekDiv = document.createElement('div');
+    weekDiv.className = 'month-column'; // Reuse existing styling
+    weekDiv.setAttribute('data-type', 'week'); // For CSS styling
+    weekDiv.style.flex = '1';
+    weekDiv.style.minWidth = '60px';
+    weekDiv.style.position = 'relative';
+    
+    // Show every week, or every other week if too many
+    const shouldShowLabel = weeks.length <= 15 || index % 2 === 0;
+    
+    if (shouldShowLabel) {
+      const weekLabel = document.createElement('div');
+      weekLabel.className = 'month-label'; // Reuse existing styling
+      
+      if (weeks.length <= 8) {
+        // Plenty of space: Week of [date]
+        weekLabel.textContent = `Week of ${week.toLocaleDateString('en', { 
+          month: 'short', 
+          day: 'numeric' 
+        })}`;
+      } else {
+        // Compact: Just the start date
+        weekLabel.textContent = week.toLocaleDateString('en', { 
+          month: 'short', 
+          day: 'numeric' 
+        });
+      }
+      
+      weekDiv.appendChild(weekLabel);
+    }
+    
+    monthsContainer.appendChild(weekDiv);
+  });
+}
+
+/**
+ * Original month rendering logic
+ */
+function renderMonthHeadersOriginal(monthsContainer, startDate, endDate) {
   const months = getMonthsBetween(startDate, endDate);
   const totalMonths = months.length;
   
-  monthsContainer.innerHTML = '';
+  // Calculate optimal spacing to prevent overlap
+  let labelInterval = 1;
+  if (totalMonths > 36) {
+    labelInterval = 3; // Show every 3rd month
+  } else if (totalMonths > 18) {
+    labelInterval = 2; // Show every 2nd month  
+  } else {
+    labelInterval = 1; // Show every month
+  }
   
   months.forEach((month, index) => {
     const monthDiv = document.createElement('div');
     monthDiv.className = 'month-column';
+    monthDiv.setAttribute('data-type', 'month'); // For CSS styling
     monthDiv.style.flex = '1';
-    monthDiv.style.minWidth = '60px';
+    monthDiv.style.minWidth = `${Math.max(30, 360 / totalMonths)}px`;
     monthDiv.style.position = 'relative';
     
-    // Month label
-    const monthLabel = document.createElement('div');
-    monthLabel.className = 'month-label';
-    monthLabel.textContent = formatMonth(month);
-    monthDiv.appendChild(monthLabel);
+    // Only show labels at calculated intervals or for important months
+    const shouldShowLabel = (
+      index % labelInterval === 0 || 
+      month.getMonth() === 0 || // January
+      index === 0 || // First month
+      index === totalMonths - 1 // Last month
+    );
     
-    // Year label (show on January or first month)
-    if (month.getMonth() === 0 || index === 0) {
-      const yearLabel = document.createElement('div');
-      yearLabel.className = 'year-label';
-      yearLabel.textContent = month.getFullYear().toString();
-      monthDiv.appendChild(yearLabel);
+    if (shouldShowLabel) {
+      // Month label
+      const monthLabel = document.createElement('div');
+      monthLabel.className = 'month-label';
+      
+      // Use appropriate format based on available space
+      if (totalMonths > 36) {
+        // Very tight: 3-letter month + 2-digit year
+        monthLabel.textContent = month.toLocaleDateString('en', { month: 'short', year: '2-digit' });
+      } else if (totalMonths > 18) {
+        // Medium: Month and 2-digit year
+        monthLabel.textContent = month.toLocaleDateString('en', { month: 'short', year: '2-digit' });
+      } else {
+        // Plenty of space: Full month name + full year
+        monthLabel.textContent = month.toLocaleDateString('en', { month: 'long', year: 'numeric' });
+      }
+      
+      monthDiv.appendChild(monthLabel);
     }
     
     monthsContainer.appendChild(monthDiv);
@@ -152,6 +304,15 @@ export function renderRangeEvents(events, categoryElements, startDate, endDate, 
     if (!categoryElement) return;
     
     try {
+      // Skip events that are completely outside the visible date range
+      const timelineStart = startDate.getTime();
+      const timelineEnd = endDate.getTime();
+      const eventStart = event.start.getTime();
+      const eventEnd = event.end.getTime();
+      
+      // Skip if event is completely before or after the visible range
+      if (eventEnd < timelineStart || eventStart > timelineEnd) return;
+      
       // Calculate position and width
       const leftPosition = calculatePosition(event.start, startDate, endDate);
       const width = calculateWidth(event.start, event.end, startDate, endDate);
@@ -239,8 +400,18 @@ export function renderMilestoneEvents(events, categoryElements, startDate, endDa
     
     if (!categoryElement || isNaN(event.start.getTime())) return;
     
+    // Skip events that are outside the visible date range
+    const timelineStart = startDate.getTime();
+    const timelineEnd = endDate.getTime();
+    const eventTime = event.start.getTime();
+    
+    if (eventTime < timelineStart || eventTime > timelineEnd) return;
+    
     // Calculate position
     const leftPosition = calculatePosition(event.start, startDate, endDate);
+    
+    // Additional safety check for position bounds
+    if (leftPosition < -2 || leftPosition > 102) return;
     
     // Create milestone dot
     const milestoneDot = document.createElement('div');
@@ -332,7 +503,18 @@ export function renderLifeEvents(events, timeline, startDate, endDate, editEvent
   lifeEvents.forEach(event => {
     if (isNaN(event.start.getTime())) return;
     
+    // Skip events that are outside the visible date range with small buffer
+    const timelineStart = startDate.getTime();
+    const timelineEnd = endDate.getTime();
+    const eventTime = event.start.getTime();
+    
+    // Only render lifelines for events actually within the visible range
+    if (eventTime < timelineStart || eventTime > timelineEnd) return;
+    
     const leftPosition = calculatePosition(event.start, startDate, endDate);
+    
+    // Additional safety check to ensure position is within reasonable bounds
+    if (leftPosition < -2 || leftPosition > 102) return;
     
     // Create vertical line
     const lifeLine = document.createElement('div');
@@ -356,13 +538,17 @@ export function renderLifeEvents(events, timeline, startDate, endDate, editEvent
     
     lifeEventsContainer.appendChild(lifeLine);
     
-    // Create label below the timeline
+    // Create label below the timeline with collision detection
     const lifeLabel = document.createElement('div');
     lifeLabel.className = 'life-label below-chart';
     lifeLabel.style.left = `${leftPosition}%`;
     lifeLabel.style.backgroundColor = event.color;
     lifeLabel.textContent = event.title;
     lifeLabel.setAttribute('data-life-event-id', event.id);
+    
+    // Calculate label level to avoid overlaps
+    const labelLevel = calculateLifeLabelLevel(leftPosition, lifeLabelsContainer);
+    lifeLabel.style.top = `${labelLevel * 30}px`; // Compact spacing between levels
     
     // Click handler for label
     lifeLabel.addEventListener('click', (e) => {
@@ -377,6 +563,52 @@ export function renderLifeEvents(events, timeline, startDate, endDate, editEvent
     
     lifeLabelsContainer.appendChild(lifeLabel);
   });
+}
+
+/**
+ * Calculate the vertical level for a life event label to avoid overlaps
+ * @param {number} position - Horizontal position percentage
+ * @param {HTMLElement} container - Container with existing labels
+ * @returns {number} Level (0, 1, 2, etc.) for vertical positioning
+ */
+function calculateLifeLabelLevel(position, container) {
+  const existingLabels = container.querySelectorAll('.life-label');
+  const levels = []; // Track occupied positions at each level
+  
+  // Reduced width to allow slight overlaps while keeping text readable
+  const labelWidth = 8; // Reduced from 12 to allow more labels per level
+  const overlapTolerance = 2; // Allow 2% overlap for tighter packing
+  
+  existingLabels.forEach(label => {
+    const labelLeft = parseFloat(label.style.left);
+    const labelTop = parseFloat(label.style.top) || 0;
+    const labelLevel = Math.floor(labelTop / 30); // Updated to match new spacing
+    
+    if (!levels[labelLevel]) levels[labelLevel] = [];
+    levels[labelLevel].push({
+      left: labelLeft - overlapTolerance,
+      right: labelLeft + labelWidth - overlapTolerance
+    });
+  });
+  
+  // Find the first level where this position doesn't have significant overlap
+  for (let level = 0; level < 3; level++) { // Reduced to 3 levels max for cleaner look
+    if (!levels[level]) return level; // Empty level
+    
+    let hasSignificantOverlap = false;
+    for (const occupied of levels[level]) {
+      // Allow slight overlap but prevent major text collision
+      const overlapAmount = Math.min(position + labelWidth, occupied.right) - Math.max(position, occupied.left);
+      if (overlapAmount > labelWidth * 0.4) { // Only avoid if >40% overlap
+        hasSignificantOverlap = true;
+        break;
+      }
+    }
+    
+    if (!hasSignificantOverlap) return level;
+  }
+  
+  return 0; // Fallback to level 0 if all levels have significant overlaps
 }
 
 /**
