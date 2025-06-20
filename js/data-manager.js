@@ -34,9 +34,10 @@ export function processImportedData(data, nextId) {
     const start = new Date(ev.start);
     const end = (type === 'range') ? new Date(ev.end || ev.start) : new Date(ev.start);
     const color = ev.color || randomColor();
-    const metadata = ev.metadata || '';
+    const metadata = (ev.metadata && ev.metadata !== '') ? ev.metadata : null;
     // Only use explicit category; don't fall back to parent ID
-    const category = ev.category || null;
+    // Convert empty string to null for proper comparison
+    const category = (ev.category && ev.category !== '') ? ev.category : null;
     const place = ev.place || null;
     
     // Convert boolean fields with robust type handling
@@ -283,7 +284,11 @@ export function eventsToCSV(events) {
       } else if (typeof event[header] === 'object' && event[header] !== null) {
         return JSON.stringify(event[header]).replace(/"/g, '""');
       } else {
-        return event[header] !== undefined ? String(event[header]).replace(/"/g, '""') : '';
+        // Handle null and undefined properly in CSV export
+        if (event[header] === null || event[header] === undefined) {
+          return '';
+        }
+        return String(event[header]).replace(/"/g, '""');
       }
     }).map(value => {
       // Enclose in quotes if contains comma, newline or double quote

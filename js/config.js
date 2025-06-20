@@ -2,7 +2,7 @@
 // This module contains global configuration, constants, and application state
 
 // App version and metadata
-export const APP_VERSION = '1.6.8';
+export const APP_VERSION = '1.7.1';
 export const COPYRIGHT = '© 2025 Timeline App';
 
 // Milestone default emoji
