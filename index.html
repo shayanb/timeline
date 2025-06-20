@@ -250,19 +250,19 @@
     <i class="close icon"></i>
     <div class="header">
       <i class="robot icon"></i>
-      AI-Assisted CSV Generation
+      AI-Assisted Import
     </div>
     <div class="scrolling content">
       <div class="ui container">
-        <h3>How to Use AI (ChatGPT/Claude) to Create Timeline Data</h3>
-        <p>You can use AI tools to convert your natural language stories into properly formatted CSV data for import.</p>
+        <h2 style="font-weight: bold; margin-bottom: 0.5rem; color: #2c3e50;">How to Use AI (ChatGPT/Claude/etc.) to Create Timeline Data</h2>
+        <p>You can use AI tools to convert your life stories into properly formatted CSV data for import and visualize as a multi-dimensional timeline.</p>
         
         <div class="ui three stackable steps">
           <div class="step">
             <i class="edit icon"></i>
             <div class="content">
               <div class="title">Tell Your Story</div>
-              <div class="description">Write your story in natural language</div>
+              <div class="description">Write your story in your language</div>
             </div>
           </div>
           <div class="step">
@@ -282,20 +282,19 @@
         </div>
 
         <div class="ui divider"></div>
-        <div class="ui two column stackable grid" style="margin-top: 20px;">
-        <div class="column">
-            <h2>Example Story Input:</h2>
+        <div class="ui two column stackable equal width grid" style="margin-top: 20px;">
+          <div class="column">
+            <h4 style="margin-top: 0; margin-bottom: 1rem;">Example Story Input:</h4>
             <div class="ui secondary segment">
               <p style="font-style: italic; font-size: 0.9em; line-height: 1.4;">
                 "I graduated from UC Berkeley with a Computer Science degree in May 2020. During my time there from 2016-2020, I did an internship at Google in summer 2019 in Mountain View, and another at Microsoft in Seattle during summer 2018. After graduation, I started working at Meta in Menlo Park in August 2020. I got promoted to Senior Engineer in January 2022. I also traveled to Japan for vacation in March 2021 and to Europe (France, Italy, Germany) in summer 2022."
               </p>
             </div>
           </div>
-
           <div class="column">
-            <div class="ui info message">
-              <div class="header">Tips for Better Results:</div>
-              <ul class="ui list">
+            <h4 style="margin-top: 0; margin-bottom: 1rem;">Tips for Better Results:</h4>
+            <div class="ui info message" style="margin-top: 0;">
+              <ul class="ui list" style="margin: 0;">
                 <li>Be specific about dates and timeframes</li>
                 <li>Mention locations clearly</li>
                 <li>Group related events by mentioning categories</li>
@@ -304,15 +303,14 @@
               </ul>
             </div>
           </div>
-
         </div>
-        <h3>Copy-Paste Prompt for AI</h3>
+        <!-- <h3>Copy-Paste Prompt for AI</h3> -->
         <div class="ui segment" style="background-color: #f8f9fa; position: relative;">
           <button class="ui right floated mini primary button" id="copy-prompt-btn" style="position: absolute; top: 10px; right: 10px; z-index: 10;">
             <i class="copy icon"></i>
             Copy Prompt
           </button>
-          <div class="ui top attached label">Prompt for ChatGPT/Claude</div>
+          <div class="ui top attached label">Copy-Paste Prompt for AI</div>
           <div id="ai-prompt-text" style="font-family: 'Courier New', monospace; white-space: pre-wrap; font-size: 0.85em; line-height: 1.5; padding-top: 30px; word-wrap: break-word; overflow-wrap: break-word;">Please convert the following story into a CSV format for a timeline application. Use this exact header format and follow these guidelines:
 
 **CSV Header (use exactly):**
@@ -333,6 +331,11 @@ title,start,end,type,category,color,isImportant,isParent,parent_id,event_id,loca
 - **location_country**: Country where event occurred
 - **metadata**: Additional notes or details
 - **row**: Leave empty for auto-placement, or specify number for manual row assignment
+
+**Event Type Examples:**
+- **"range"**: University attendance (2016-2020), Job at company (2020-2023), Training program
+- **"life"**: Graduation, Wedding, Moving to new city, Birth of child, Starting university, Death of family member
+- **"milestone"**: Promotion, Award received, Conference presentation, First day at job, Interview
 
 **Default Values:**
 - If dates are unclear, ask me to clarify

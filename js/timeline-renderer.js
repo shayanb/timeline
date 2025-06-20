@@ -285,9 +285,11 @@ export function renderMilestoneEvents(events, categoryElements, startDate, endDa
       editEventCallback(event);
     });
     
-    // Tooltip
-    const dateStr = formatDate(event.start);
-    milestoneDot.title = `${event.title} (${dateStr})`;
+    // Tooltip - use the same system as range events
+    const tooltip = document.getElementById('tooltip');
+    if (tooltip) {
+      setupEventTooltip(milestoneDot, event, tooltip);
+    }
     
     categoryElement.timeline.appendChild(milestoneDot);
   });
@@ -346,6 +348,12 @@ export function renderLifeEvents(events, timeline, startDate, endDate, editEvent
       editEventCallback(event);
     });
     
+    // Tooltip - use the same system as range events
+    const tooltip = document.getElementById('tooltip');
+    if (tooltip) {
+      setupEventTooltip(lifeLine, event, tooltip);
+    }
+    
     lifeEventsContainer.appendChild(lifeLine);
     
     // Create label below the timeline
@@ -361,6 +369,11 @@ export function renderLifeEvents(events, timeline, startDate, endDate, editEvent
       e.stopPropagation();
       editEventCallback(event);
     });
+    
+    // Tooltip for label too
+    if (tooltip) {
+      setupEventTooltip(lifeLabel, event, tooltip);
+    }
     
     lifeLabelsContainer.appendChild(lifeLabel);
   });
@@ -503,9 +516,18 @@ function setupEventTooltip(eventDiv, event, tooltip) {
   eventDiv.addEventListener('mouseenter', () => {
     tooltip.style.opacity = '1';
     tooltip.style.display = 'block';
+    
+    // Handle different event types for date display
+    let dateDisplay;
+    if (event.type === 'life' || event.type === 'milestone') {
+      dateDisplay = formatDate(event.start);
+    } else {
+      dateDisplay = `${formatDate(event.start)} - ${formatDate(event.end)}`;
+    }
+    
     tooltip.innerHTML = `
       <div class="font-medium">${event.title}</div>
-      <div>${formatDate(event.start)} - ${formatDate(event.end)}</div>
+      <div>${dateDisplay}</div>
       ${event.metadata ? `<div class="text-gray-300 mt-1">${event.metadata}</div>` : ''}
     `;
   });
