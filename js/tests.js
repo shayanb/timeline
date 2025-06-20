@@ -1,8 +1,8 @@
 // Testing Module
 // This module contains all testing functionality for import/export validation
 
-import { eventsToCSV, parseFileContent, processImportedData, compareEvents, createTestEvents } from './data-manager.js';
-import { randomColor, normalizeValue, areValuesEqual } from './utils.js';
+import { eventsToCSV, parseFileContent, processImportedData, compareEvents, createTestEvents, normalizeValue, areValuesEqual } from './data-manager.js';
+import { randomColor } from './utils.js';
 import { isDevelopmentMode } from './config.js';
 
 /**
@@ -163,8 +163,12 @@ export async function testComprehensiveImportExport() {
     const processedFromYAML = processImportedData(yamlTestData, 1);
     console.log('Processed from YAML:', processedFromYAML);
     
+    if (!processedFromYAML || !processedFromYAML.mappedEvents) {
+      throw new Error('processImportedData returned invalid data for YAML');
+    }
+    
     // Export to CSV
-    const csvExport = eventsToCSV(processedFromYAML.events);
+    const csvExport = eventsToCSV(processedFromYAML.mappedEvents);
     console.log('CSV Export:', csvExport);
     
     // Re-import from CSV
@@ -172,8 +176,12 @@ export async function testComprehensiveImportExport() {
     const processedFromCSV = processImportedData(csvData, 100);
     console.log('Re-imported from CSV:', processedFromCSV);
     
+    if (!processedFromCSV || !processedFromCSV.mappedEvents) {
+      throw new Error('processImportedData returned invalid data for CSV');
+    }
+    
     // Compare original and final
-    const yamlComparison = compareImportExportResults(processedFromYAML.events, processedFromCSV.events);
+    const yamlComparison = compareImportExportResults(processedFromYAML.mappedEvents, processedFromCSV.mappedEvents);
     results.yamlToCsv = yamlComparison;
     
     // Test 2: CSV → CSV roundtrip
@@ -186,8 +194,12 @@ export async function testComprehensiveImportExport() {
     const processedFromCSV1 = processImportedData(csvTestData, 200);
     console.log('First CSV processing:', processedFromCSV1);
     
+    if (!processedFromCSV1 || !processedFromCSV1.mappedEvents) {
+      throw new Error('processImportedData returned invalid data for first CSV');
+    }
+    
     // Export to CSV again
-    const csvExport2 = eventsToCSV(processedFromCSV1.events);
+    const csvExport2 = eventsToCSV(processedFromCSV1.mappedEvents);
     console.log('Second CSV Export:', csvExport2);
     
     // Re-import from CSV again
@@ -195,8 +207,12 @@ export async function testComprehensiveImportExport() {
     const processedFromCSV2 = processImportedData(csvData2, 300);
     console.log('Second CSV processing:', processedFromCSV2);
     
+    if (!processedFromCSV2 || !processedFromCSV2.mappedEvents) {
+      throw new Error('processImportedData returned invalid data for second CSV');
+    }
+    
     // Compare original and final
-    const csvComparison = compareImportExportResults(processedFromCSV1.events, processedFromCSV2.events);
+    const csvComparison = compareImportExportResults(processedFromCSV1.mappedEvents, processedFromCSV2.mappedEvents);
     results.csvToCsv = csvComparison;
     
   } catch (error) {
@@ -225,6 +241,17 @@ export async function testComprehensiveImportExport() {
  */
 function compareImportExportResults(original, processed) {
   const issues = [];
+  
+  // Validate inputs
+  if (!original || !Array.isArray(original)) {
+    issues.push('Original events data is invalid or not an array');
+    return { success: false, issues };
+  }
+  
+  if (!processed || !Array.isArray(processed)) {
+    issues.push('Processed events data is invalid or not an array');
+    return { success: false, issues };
+  }
   
   // Check event count
   if (original.length !== processed.length) {

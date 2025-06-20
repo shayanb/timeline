@@ -542,28 +542,12 @@ export function calculateDataStats(data) {
 // =============================================================================
 
 /**
- * Compare two events for testing purposes
- * @param {Object} original - Original event object
- * @param {Object} imported - Imported event object
- * @param {string} context - Context string for debugging
- * @returns {Array} Array of issues found
+ * Helper to normalize values for comparison
+ * @param {*} value - Value to normalize
+ * @param {string} type - Type hint for normalization
+ * @returns {*} Normalized value
  */
-export function compareEvents(original, imported, context) {
-  const issues = [];
-  
-  // Simple utility to add an issue
-  function addIssue(field, originalValue, importedValue) {
-    issues.push({
-      field,
-      original: originalValue,
-      imported: importedValue,
-      eventTitle: original.title,
-      context: context
-    });
-  }
-  
-  // Helper to normalize values for comparison
-  function normalizeValue(value, type) {
+export function normalizeValue(value, type) {
     if (value === undefined || value === null || value === '') {
       return null;
     }
@@ -585,7 +569,10 @@ export function compareEvents(original, imported, context) {
         return isNaN(num) ? null : num;
         
       case 'string':
-        // Convert to canonical string
+        // Convert to canonical string, but preserve null/undefined
+        if (value === null || value === undefined || value === '') {
+          return null;
+        }
         return String(value).trim();
         
       case 'date':
@@ -608,19 +595,49 @@ export function compareEvents(original, imported, context) {
       default:
         return value;
     }
+}
+
+/**
+ * Helper to compare two values with normalization
+ * @param {*} originalVal - Original value
+ * @param {*} importedVal - Imported value
+ * @param {string} type - Type hint for comparison
+ * @returns {boolean} True if values are equal after normalization
+ */
+export function areValuesEqual(originalVal, importedVal, type) {
+  const normalizedOriginal = normalizeValue(originalVal, type);
+  const normalizedImported = normalizeValue(importedVal, type);
+  
+  // If both are null-like, consider equal
+  if (normalizedOriginal === null && normalizedImported === null) {
+    return true;
   }
   
-  // Helper to compare two values with normalization
-  function areValuesEqual(originalVal, importedVal, type) {
-    const normalizedOriginal = normalizeValue(originalVal, type);
-    const normalizedImported = normalizeValue(importedVal, type);
+  return normalizedOriginal === normalizedImported;
+}
+
+/**
+ * Compare two events for testing purposes
+ * @param {Object} original - Original event object
+ * @param {Object} imported - Imported event object
+ * @param {string} context - Context string for debugging
+ * @returns {Object} Comparison results with issues array
+ */
+export function compareEvents(original, imported, context) {
+  const issues = [];
+  
+  // Simple utility to add an issue
+  function addIssue(field, originalValue, importedValue) {
+    // Format values for display, handling null/undefined properly
+    const formatValue = (val) => {
+      if (val === null) return 'null';
+      if (val === undefined) return 'undefined';
+      if (val === '') return '(empty)';
+      return `'${val}'`;
+    };
     
-    // If both are null-like, consider equal
-    if (normalizedOriginal === null && normalizedImported === null) {
-      return true;
-    }
-    
-    return normalizedOriginal === normalizedImported;
+    const message = `${field} mismatch: expected ${formatValue(originalValue)} but got ${formatValue(importedValue)}`;
+    issues.push(message);
   }
   
   // Compare important fields
@@ -642,14 +659,19 @@ export function compareEvents(original, imported, context) {
     const fieldType = field.type;
     
     // Skip comparison if both fields are missing/empty
-    if (
-      (original[fieldName] === undefined || original[fieldName] === null || original[fieldName] === '') &&
-      (imported[fieldName] === undefined || imported[fieldName] === null || imported[fieldName] === '')
-    ) {
+    const origValue = original[fieldName];
+    const impValue = imported[fieldName];
+    
+    // Consider undefined, null, and empty string as equivalent "empty" values
+    const isOrigEmpty = origValue === undefined || origValue === null || origValue === '';
+    const isImpEmpty = impValue === undefined || impValue === null || impValue === '';
+    
+    if (isOrigEmpty && isImpEmpty) {
       return;
     }
     
     if (!areValuesEqual(original[fieldName], imported[fieldName], fieldType)) {
+      // Debug logging removed - comparison should work correctly now
       addIssue(fieldName, original[fieldName], imported[fieldName]);
     }
   });
@@ -664,21 +686,34 @@ export function compareEvents(original, imported, context) {
   }
   
   // Special handling for location data
-  if (original.location || imported.location_city || imported.location_country) {
-    const originalCity = original.location ? original.location.city : '';
-    const originalCountry = original.location ? original.location.country : '';
-    const importedCity = imported.location_city || '';
-    const importedCountry = imported.location_country || '';
+  if (original.location || imported.location || imported.location_city || imported.location_country) {
+    const originalCity = original.location ? (original.location.city || '') : '';
+    const originalCountry = original.location ? (original.location.country || '') : '';
     
-    if (originalCity !== importedCity) {
+    // Handle both location object and flattened location_city/location_country
+    let importedCity = '';
+    let importedCountry = '';
+    
+    if (imported.location) {
+      importedCity = imported.location.city || '';
+      importedCountry = imported.location.country || '';
+    } else {
+      importedCity = imported.location_city || '';
+      importedCountry = imported.location_country || '';
+    }
+    
+    if (!areValuesEqual(originalCity, importedCity, 'string')) {
       addIssue('location.city', originalCity, importedCity);
     }
-    if (originalCountry !== importedCountry) {
+    if (!areValuesEqual(originalCountry, importedCountry, 'string')) {
       addIssue('location.country', originalCountry, importedCountry);
     }
   }
   
-  return issues;
+  return {
+    issues: issues,
+    success: issues.length === 0
+  };
 }
 
 /**

@@ -72,11 +72,10 @@ export function initializeZoomAndPan(container, initialStartDate, initialEndDate
   // Add scroll wheel zoom functionality
   addScrollWheelZoom(container, state, updateCallback, monthDisplay);
   
-  // Add drag to pan functionality
-  addDragToPan(container, state, updateCallback, monthDisplay);
+  // Note: Drag functionality is now handled directly in main script
+  // addDragToPan(container, state, updateCallback, monthDisplay);
   
-  // Set proper cursor style
-  container.style.cursor = 'grab';
+  // Note: Cursor style is set by the working drag implementation in main script
 }
 
 /**
@@ -447,6 +446,11 @@ function addScrollWheelZoom(container, state, updateCallback, monthDisplay) {
  * @param {HTMLElement} monthDisplay - Month display element
  */
 function addDragToPan(container, state, updateCallback, monthDisplay) {
+  console.log('addDragToPan called with container:', container);
+  
+  // Temporarily disable duplicate check
+  console.log('Setting up drag functionality (ignoring duplicate check)');
+  
   let dragStartX = 0;
   let dragStartTime = 0;
   let isDraggingStarted = false;
@@ -454,34 +458,58 @@ function addDragToPan(container, state, updateCallback, monthDisplay) {
   let lastDragTime = 0;
   let dragPositions = [];
   
-  // Mouse down event - start dragging
-  container.addEventListener('mousedown', function(event) {
+  // Target the timeline area specifically for better drag detection
+  const timelineDiv = container.querySelector('#timeline');
+  const dragTarget = timelineDiv || container;
+  console.log('Setting up drag on:', dragTarget.id || 'container', dragTarget);
+  
+  // Set cursor to indicate draggable area
+  dragTarget.style.cursor = 'grab';
+  
+  // Add a visual indicator that drag is set up
+  dragTarget.title = 'Drag to pan timeline';
+  
+  // Mouse down event - start dragging  
+  const handleMouseDown = function(event) {
+    console.log('Mouse down detected on timeline, target:', event.target.className, event.target.id);
+    
+    // Don't start drag on interactive elements
+    if (event.target.closest('.action-button') || 
+        event.target.closest('.milestone-dot') || 
+        event.target.classList.contains('timeline-event')) {
+      console.log('Ignoring drag on interactive element');
+      return;
+    }
+    
+    console.log('Starting drag operation');
     const containerRect = container.getBoundingClientRect();
     const mouseX = event.clientX - containerRect.left;
+    console.log(`Mouse X position: ${mouseX}, container width: ${containerRect.width}`);
     
-    // Only start dragging if mouse is in timeline area (not on category labels)
-    if (mouseX > 180) {
-      // Stop any active animations
-      if (activeDragAnimation) {
-        activeDragAnimation.stop();
-        activeDragAnimation = null;
-      }
-      
-      state.isDragging = true;
-      isDraggingStarted = true;
-      dragStartX = event.clientX;
-      dragStartTime = performance.now();
-      dragPositions = [{x: dragStartX, time: dragStartTime}];
-      container.style.cursor = 'grabbing';
-      
-      // Prevent text selection during drag
-      event.preventDefault();
+    // Stop any active animations
+    if (activeDragAnimation) {
+      activeDragAnimation.stop();
+      activeDragAnimation = null;
     }
-  });
+    
+    state.isDragging = true;
+    isDraggingStarted = true;
+    dragStartX = event.clientX;
+    dragStartTime = performance.now();
+    dragPositions = [{x: dragStartX, time: dragStartTime}];
+    dragTarget.style.cursor = 'grabbing';
+    
+    // Prevent text selection during drag
+    event.preventDefault();
+    event.stopPropagation();
+  };
+  
+  dragTarget.addEventListener('mousedown', handleMouseDown, true); // Use capture phase
   
   // Mouse move event - handle dragging
   document.addEventListener('mousemove', function(event) {
     if (!state.isDragging) return;
+    console.log('Mouse move during drag');
     
     // Process mouse movement
     const currentX = event.clientX;
@@ -550,10 +578,11 @@ function addDragToPan(container, state, updateCallback, monthDisplay) {
   // Mouse up event - end dragging
   document.addEventListener('mouseup', function() {
     if (state.isDragging) {
+      console.log('Mouse up - ending drag');
       const releaseTime = performance.now();
       state.isDragging = false;
       isDraggingStarted = false;
-      container.style.cursor = 'grab';
+      dragTarget.style.cursor = 'grab';
       
       // Update timeline state
       if (window.timelineState) {

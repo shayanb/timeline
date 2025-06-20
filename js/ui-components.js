@@ -711,6 +711,7 @@ export function setupButtonHandlers(config) {
     onExportYaml,
     onExportCsv,
     onExportPng,
+    onClearAll,
     onParentChange,
     onTypeChange
   } = config;
@@ -757,6 +758,12 @@ export function setupButtonHandlers(config) {
   const exportPngBtn = document.getElementById('export-png');
   if (exportPngBtn && onExportPng) {
     exportPngBtn.addEventListener('click', onExportPng);
+  }
+
+  // Clear all button
+  const clearAllBtn = document.getElementById('clear-all-btn');
+  if (clearAllBtn && onClearAll) {
+    clearAllBtn.addEventListener('click', onClearAll);
   }
 
   // Parent dropdown change handler

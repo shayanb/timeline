@@ -81,26 +81,34 @@ export function renderMonthHeaders(monthsContainer, startDate, endDate) {
  * @param {Array} categories - Array of category names
  * @param {Date} startDate - Timeline start date
  * @param {Date} endDate - Timeline end date
+ * @param {Object} groupedEvents - Events grouped by category
  * @returns {Object} Map of category names to their DOM elements
  */
-export function renderCategoryRows(timeline, categories, startDate, endDate) {
+export function renderCategoryRows(timeline, categories, startDate, endDate, groupedEvents = {}) {
   const categoryElements = {};
   
   categories.forEach(category => {
+    // Calculate the maximum row for this category to determine height
+    const categoryEvents = groupedEvents[category] || [];
+    const maxRow = Math.max(0, ...categoryEvents.map(event => event.row || 0));
+    const categoryHeight = Math.max(56, 56 + (maxRow * 40)); // Base height + row spacing
     const categoryRow = document.createElement('div');
     categoryRow.className = 'category-row';
     categoryRow.dataset.category = category || 'uncategorized';
+    categoryRow.style.height = `${categoryHeight}px`;
     
     // Category label
     const categoryLabel = document.createElement('div');
     categoryLabel.className = 'category-label';
     categoryLabel.textContent = category || 'Uncategorized';
+    categoryLabel.style.height = `${categoryHeight}px`;
     categoryRow.appendChild(categoryLabel);
     
     // Category timeline area
     const categoryTimeline = document.createElement('div');
     categoryTimeline.className = 'category-timeline';
     categoryTimeline.style.position = 'relative';
+    categoryTimeline.style.height = `${categoryHeight}px`;
     
     // Add month markers
     const months = getMonthsBetween(startDate, endDate);
@@ -152,11 +160,14 @@ export function renderRangeEvents(events, categoryElements, startDate, endDate, 
       const rowOffset = (event.row || 0) * 40;
       const topOffset = event.isParent ? 2 : 8;
       
+      // Add slight horizontal offset for higher rows to show hierarchy
+      const horizontalOffset = (event.row || 0) * 2; // 2px offset per row
+      
       // Create event element
       const eventDiv = document.createElement('div');
       eventDiv.className = `timeline-event ${event.isParent ? 'parent-event' : ''} ${event.parent ? 'child-event' : ''}`;
-      eventDiv.style.left = `${leftPosition}%`;
-      eventDiv.style.width = `${width}%`;
+      eventDiv.style.left = `calc(${leftPosition}% + ${horizontalOffset}px)`;
+      eventDiv.style.width = `calc(${width}% - ${horizontalOffset}px)`;
       eventDiv.style.top = `${topOffset + rowOffset}px`;
       eventDiv.style.backgroundColor = event.color;
       eventDiv.dataset.eventId = event.id;
@@ -293,6 +304,17 @@ export function renderMilestoneEvents(events, categoryElements, startDate, endDa
 export function renderLifeEvents(events, timeline, startDate, endDate, editEventCallback) {
   const lifeEvents = events.filter(event => event.type === 'life');
   
+  // Clear existing life event containers to prevent duplicates
+  const existingLifeContainer = timeline.querySelector('.life-events-container');
+  if (existingLifeContainer) {
+    existingLifeContainer.remove();
+  }
+  
+  const existingLabelsContainer = timeline.parentElement.querySelector('.life-labels-container');
+  if (existingLabelsContainer) {
+    existingLabelsContainer.remove();
+  }
+  
   if (lifeEvents.length === 0) return;
   
   // Create container for life event lines
@@ -412,8 +434,8 @@ export function updateTimeline(events, startDate, endDate, editEventCallback) {
   // Render month headers
   renderMonthHeaders(monthsContainer, startDate, endDate);
   
-  // Render category rows
-  const categoryElements = renderCategoryRows(timeline, categories, startDate, endDate);
+  // Render category rows with proper heights based on events
+  const categoryElements = renderCategoryRows(timeline, categories, startDate, endDate, groupedEvents);
   
   // Calculate rows for events to prevent overlaps
   Object.entries(groupedEvents).forEach(([category, categoryEvents]) => {
@@ -466,7 +488,8 @@ function setupEventClickHandler(eventDiv, event, editEventCallback) {
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
     
-    e.preventDefault();
+    // Don't prevent default immediately - let drag operations work
+    // e.preventDefault();
   });
 }
 

@@ -51,7 +51,7 @@ import {
   // UI components and controls
   populateCategories, populateRowDropdown, updateParentDropdown,
   setupButtonHandlers, initializeSemanticDropdowns,
-  initializeZoomAndPan, initializeDevelopmentFeatures
+  initializeZoomAndPan
 } from './js/ui-components.js';
 
 import {
@@ -78,7 +78,7 @@ import {
 // Application state
 let events = [];
 let nextId = 1;
-let startDate = new Date(2020, 0, 1);
+let startDate = new Date(2018, 0, 1);  // Set to match actual data range
 let endDate = new Date(2025, 11, 31);
 
 // =============================================================================
@@ -115,11 +115,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
   
   // Initialize development features if in development mode
-  initializeDevelopmentFeatures();
   initializeDevelopmentTests(update);
   
   // Load initial data
+  console.log('About to load initial data...');
   await loadInitialData();
+  console.log('Data loaded, now calling update()...');
   
   // Initial render
   update();
@@ -162,6 +163,7 @@ function setupEventListeners() {
     onExportYaml: handleExportYaml,
     onExportCsv: handleExportCsv,
     onExportPng: handleExportPng,
+    onClearAll: handleClearAll,
     onParentChange: handleParentChange,
     onTypeChange: handleTypeChange
   });
@@ -205,7 +207,21 @@ async function loadInitialData() {
         // Update date range based on loaded events
         updateDateRangeFromEvents();
         
+        // Force reset of timeline state to use new date range
+        if (window.timelineState) {
+          console.log('Resetting timeline state with new date range');
+          window.timelineState.currentStartDate = new Date(startDate);
+          window.timelineState.currentEndDate = new Date(endDate);
+          window.timelineState.originalStartDate = new Date(startDate);
+          window.timelineState.originalEndDate = new Date(endDate);
+          window.timelineState.isZoomed = false;
+        }
+        
         console.log(`Loaded ${events.length} events from data/events.yaml`);
+        
+        // Force an immediate update after data loading
+        console.log('Forcing timeline update after data load...');
+        update();
       }
     }
   } catch (error) {
@@ -215,9 +231,10 @@ async function loadInitialData() {
 }
 
 /**
- * Update date range based on current events
+ * Update date range based on current events to center them in the timeline
  */
 function updateDateRangeFromEvents() {
+  console.log('updateDateRangeFromEvents called with', events.length, 'events');
   if (events.length === 0) return;
   
   const dates = events.map(e => e.start).concat(
@@ -226,10 +243,32 @@ function updateDateRangeFromEvents() {
   
   const minDate = new Date(Math.min(...dates));
   const maxDate = new Date(Math.max(...dates));
+  console.log('Date range calculated:', formatDate(minDate), 'to', formatDate(maxDate));
   
-  // Add padding
-  startDate = new Date(minDate.getFullYear() - 1, 0, 1);
-  endDate = new Date(maxDate.getFullYear() + 1, 11, 31);
+  // Calculate the actual data range
+  const dataRange = maxDate.getTime() - minDate.getTime();
+  
+  // Add smart padding based on data density
+  // For shorter data ranges, add more relative padding to center items better
+  const dayInMs = 24 * 60 * 60 * 1000;
+  const dataRangeInDays = dataRange / dayInMs;
+  
+  let paddingDays;
+  if (dataRangeInDays <= 30) {
+    // For very short ranges, add 6 months padding on each side
+    paddingDays = 180;
+  } else if (dataRangeInDays <= 365) {
+    // For ranges up to a year, add 3 months padding
+    paddingDays = 90;
+  } else {
+    // For longer ranges, add 6 months padding
+    paddingDays = 180;
+  }
+  
+  startDate = new Date(minDate.getTime() - (paddingDays * dayInMs));
+  endDate = new Date(maxDate.getTime() + (paddingDays * dayInMs));
+  
+  console.log(`Auto-scaled timeline: ${formatDate(startDate)} to ${formatDate(endDate)} (data: ${formatDate(minDate)} to ${formatDate(maxDate)})`);
 }
 
 // =============================================================================
@@ -267,8 +306,8 @@ async function handleImportFile(event) {
     const data = parseFileContent(fileContent, fileType);
     const result = processImportedData(data, nextId);
     
-    // Merge with existing events
-    events = [...events, ...result.mappedEvents];
+    // Replace existing events with imported data
+    events = result.mappedEvents;
     nextId = result.nextId;
     
     // Update event manager
@@ -383,6 +422,19 @@ function handleExportPng() {
 }
 
 /**
+ * Handle clear all data
+ */
+function handleClearAll() {
+  if (confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
+    events = [];
+    nextId = 1;
+    setEvents(events);
+    update();
+    console.log('All data cleared');
+  }
+}
+
+/**
  * Handle parent input change
  */
 function handleParentChange(value) {
@@ -436,8 +488,25 @@ function update() {
   
   // Get current timeline state for zoom/pan
   const timelineState = getTimelineState();
-  const currentStartDate = timelineState?.currentStartDate || startDate;
-  const currentEndDate = timelineState?.currentEndDate || endDate;
+  let currentStartDate, currentEndDate;
+  
+  // On initial load or when not zoomed, use the calculated date range
+  if (!timelineState || !timelineState.isZoomed) {
+    currentStartDate = startDate;
+    currentEndDate = endDate;
+    console.log('Using calculated date range:', formatDate(currentStartDate), 'to', formatDate(currentEndDate));
+    
+    // Update timeline state to match our calculated range
+    if (timelineState) {
+      timelineState.currentStartDate = new Date(startDate);
+      timelineState.currentEndDate = new Date(endDate);
+    }
+  } else {
+    // Use zoomed/panned dates when available
+    currentStartDate = timelineState.currentStartDate || startDate;
+    currentEndDate = timelineState.currentEndDate || endDate;
+    console.log('Using timeline state dates:', formatDate(currentStartDate), 'to', formatDate(currentEndDate));
+  }
   
   // Update timeline using the timeline renderer
   updateTimeline(events, currentStartDate, currentEndDate, editEvent);
@@ -457,16 +526,118 @@ function update() {
     showCategoryEventsCallback: null // Will be set up by the visualization module
   });
   
-  // Initialize zoom and pan functionality
+  // Initialize zoom and pan functionality (zoom controls + scroll wheel zoom)
   const timelineContainer = document.getElementById('timeline-container');
-  if (timelineContainer) {
+  const monthDisplay = document.getElementById('current-month-display');
+  if (timelineContainer && !timelineContainer.dataset.panInitialized) {
+    console.log('Initializing zoom controls and scroll wheel zoom...');
+    timelineContainer.dataset.panInitialized = 'true';
     initializeZoomAndPan(
       timelineContainer, 
       currentStartDate, 
       currentEndDate, 
       update,
-      currentMonthDisplay
+      monthDisplay
     );
+  }
+  
+  // Drag functionality - Working implementation  
+  const timelineDiv = document.getElementById('timeline');
+  if (timelineDiv && !timelineDiv.dataset.directDragSetup) {
+    console.log('Setting up drag functionality on timeline');
+    timelineDiv.dataset.directDragSetup = 'true';
+    timelineDiv.style.cursor = 'grab';
+    timelineDiv.title = 'Drag to pan timeline';
+    
+    let isDragging = false;
+    let dragStartX = 0;
+    let lastUpdateTime = 0;
+    
+    // Ensure timeline state exists (should be created by initializeZoomAndPan above)
+    if (!window.timelineState) {
+      console.warn('Timeline state not found, creating minimal state for drag');
+      window.timelineState = {
+        currentStartDate: new Date(currentStartDate),
+        currentEndDate: new Date(currentEndDate),
+        isZoomed: false
+      };
+    }
+    
+    timelineDiv.addEventListener('mousedown', function(e) {
+      console.log('Starting drag operation');
+      
+      // Skip interactive elements
+      if (e.target.closest('.action-button') || 
+          e.target.closest('.milestone-dot') || 
+          e.target.classList.contains('timeline-event')) {
+        return;
+      }
+      
+      isDragging = true;
+      dragStartX = e.clientX;
+      timelineDiv.style.cursor = 'grabbing';
+      e.preventDefault();
+    });
+    
+    document.addEventListener('mousemove', function(e) {
+      if (!isDragging) return;
+      
+      // console.log('Mouse move during drag'); // Commented out to reduce console spam
+      const currentX = e.clientX;
+      const deltaX = currentX - dragStartX;
+      
+      // Get current timeline state
+      const timelineState = getTimelineState();
+      if (!timelineState) return;
+      
+      // Calculate date range shift
+      const container = document.getElementById('timeline-container');
+      const containerRect = container.getBoundingClientRect();
+      const effectiveWidth = containerRect.width - 180; // Account for category labels
+      const dateRangeMillis = timelineState.currentEndDate.getTime() - timelineState.currentStartDate.getTime();
+      const millisPerPixel = dateRangeMillis / effectiveWidth;
+      
+      // Apply shift with damping
+      const shift = deltaX * millisPerPixel * -0.5; // Damping factor
+      
+      // Update dates
+      const newStartDate = new Date(timelineState.currentStartDate.getTime() + shift);
+      const newEndDate = new Date(timelineState.currentEndDate.getTime() + shift);
+      
+      // Update timeline state
+      timelineState.currentStartDate = newStartDate;
+      timelineState.currentEndDate = newEndDate;
+      timelineState.isZoomed = true;
+      
+      // Update month display
+      const monthDisplay = document.getElementById('current-month-display');
+      if (monthDisplay) {
+        monthDisplay.textContent = `${formatMonth(newStartDate)} - ${formatMonth(newEndDate)}`;
+      }
+      
+      // Update drag start position for next movement
+      dragStartX = currentX;
+      
+      // Throttle updates for performance
+      const now = Date.now();
+      if (now - lastUpdateTime > 50) { // Update every 50ms
+        requestAnimationFrame(() => {
+          update();
+          lastUpdateTime = now;
+        });
+      }
+    });
+    
+    document.addEventListener('mouseup', function() {
+      if (isDragging) {
+        console.log('Mouse up - ending drag');
+        isDragging = false;
+        timelineDiv.style.cursor = 'grab';
+        
+        // Final update
+        update();
+      }
+    });
   }
   
   console.log(`Timeline updated with ${events.length} events`);

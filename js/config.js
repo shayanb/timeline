@@ -29,7 +29,7 @@ export function setUnsavedChanges(status) {
   updateModificationStatus();
 }
 
-// Function to get unsaved changes flag
+// Function to get unsaved changes status
 export function getUnsavedChanges() {
   return hasUnsavedChanges;
 }
