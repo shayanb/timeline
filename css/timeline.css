@@ -1,0 +1,342 @@
+/* ========================================
+   TIMELINE STYLES
+   Timeline container, events, markers, categories, and timeline elements
+   ======================================== */
+
+/* Timeline main container */
+#timeline {
+  min-height: 200px;
+  position: relative;
+}
+
+/* Timeline header */
+#timeline-header {
+  margin-bottom: 5px;
+}
+
+#current-month-display {
+  border-bottom: 2px solid #3b82f6;
+  padding-bottom: 2px;
+  font-weight: 600;
+}
+
+/* Category rows */
+.category-row {
+  display: flex;
+  min-height: 56px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.category-label {
+  width: 180px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  background-color: #f9fafb;
+  border-right: 1px solid #e5e7eb;
+  font-weight: 500;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.category-timeline {
+  flex: 1;
+  position: relative;
+  min-height: 56px;
+}
+
+/* Month grid and markers */
+.month-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background-color: #e5e7eb;
+  z-index: 1;
+}
+
+.month-column {
+  border-right: 1px solid #e5e7eb;
+}
+
+.month-label {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: #6b7280;
+  white-space: nowrap;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.year-label {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  color: #4b5563;
+  white-space: nowrap;
+  font-weight: 600;
+  background-color: rgba(255, 255, 255, 0.5);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+/* Today marker */
+.today-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background-color: #22c55e; /* Green color */
+  z-index: 10;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6); /* Glow effect */
+}
+
+/* Today label styling */
+.today-label {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+  transition: transform 0.2s ease;
+  transform: rotate(45deg);
+  transform-origin: top left;
+}
+
+.today-label:hover {
+  transform: translateY(-2px);
+}
+
+/* Timeline events */
+.timeline-event {
+  position: absolute;
+  height: 32px;
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  z-index: 5;
+  /* No transform by default - align exactly with calculated position */
+}
+
+.timeline-event:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px); /* Only move up on hover, not horizontally */
+}
+
+/* Parent event styling */
+.timeline-event.parent-event {
+  height: 12px;
+  opacity: 0.8;
+  border-radius: 2px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.timeline-event.parent-event:hover {
+  opacity: 1;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px); /* Only move up on hover, not horizontally */
+}
+
+/* Child event styling */
+.timeline-event.child-event {
+  border-left: 3px solid rgba(255, 255, 255, 0.7);
+}
+
+/* Event content */
+.event-content {
+  height: 100%;
+  width: 100%;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: white;
+  font-size: 14px;
+  overflow: hidden;
+}
+
+.event-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Important event indicator */
+.event-important {
+  color: #fcd34d;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+/* Event actions on hover */
+.event-actions {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 260; /* Ensure hover actions sit above milestone dots */
+}
+
+.timeline-event:hover .event-actions {
+  opacity: 1;
+}
+
+.action-button {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.action-button:hover {
+  background-color: #f3f4f6;
+  transform: translateY(-2px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+}
+
+.action-button:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.edit-button {
+  color: #3b82f6; /* Blue for edit */
+  font-weight: bold;
+}
+
+.delete-button {
+  color: #ef4444; /* Red for delete */
+  font-weight: bold;
+}
+
+/* Life events and milestones */
+.life-line {
+  position: absolute;
+  top: 0;
+  width: 2px;
+  z-index: 10;
+  background-color: currentColor;
+  cursor: pointer;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.2);
+  opacity: 0.7;
+  transition: opacity 0.2s ease, width 0.2s ease;
+  height: 100%;
+}
+
+.life-line:hover {
+  opacity: 1;
+  width: 3px;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Container for life event lines */
+.life-events-container {
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  left: 180px; /* Same as category label width */
+  right: 0;
+  bottom: 0;
+  z-index: 15;
+  overflow: visible;
+}
+
+.life-events-container .life-line {
+  pointer-events: auto;
+}
+
+/* Container for life event labels */
+.life-labels-container {
+  position: relative;
+  height: 100px;
+  margin-top: 5px;
+  overflow: visible;
+  z-index: 20;
+  margin-left: 180px; /* Match the timeline layout */
+}
+
+/* Life label styling - using a different approach for perfect alignment */
+.life-label.below-chart {
+  position: absolute;
+  padding: 4px 8px;
+  font-size: 11px;
+  white-space: nowrap;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  cursor: pointer;
+  transform: rotate(45deg);
+  transform-origin: top left;
+  /* Add visible alignment marker */
+  border-top: 2px solid yellow;
+  /* Ensure consistent z-index */
+  z-index: 12;
+}
+
+.life-label.below-chart:hover {
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+  opacity: 1;
+}
+
+/* Timeline indicator for milestone positions */
+.milestone-timeline-indicator {
+  z-index: 5;
+}
+
+/* Shared styles for all milestone dots */
+.milestone-dot {
+  position: absolute !important; /* Ensure absolute positioning */
+  z-index: 180; /* Raised above other timeline elements, below hover */
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.9); /* Stronger glow */
+  pointer-events: auto !important;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  width: 10px !important; /* Ensure width overrides inline styling */
+  height: 10px !important; /* Ensure height overrides inline styling */
+  border-radius: 50% !important; /* Ensure it's always a circle */
+  border: 2px solid white !important; /* White border for visibility */
+  /* Center the dot */
+  transform: translateX(-50%) !important;
+}
+
+/* Style for standalone milestones (timeline-milestone class) */
+.timeline-milestone {
+  z-index: 200; /* Elevated above dots, below hover */
+  box-shadow: 0 0 6px rgba(255, 255, 255, 1); /* Stronger glow for better visibility */
+  width: 12px !important; /* Slightly larger than parent milestone dots */
+  height: 12px !important;
+  border: 2px solid rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Hover effects for milestone dots */
+.milestone-dot:hover {
+  transform: translateX(-50%) scale(2) !important; /* Larger scale for more obvious hover while maintaining centering */
+  box-shadow: 0 0 8px rgba(255, 255, 255, 1), 0 0 12px rgba(255, 255, 255, 0.6); /* Double glow effect */
+  background-color: #ffff00 !important; /* Bright color on hover */
+  z-index: 250 !important; /* Even higher z-index on hover */
+}
+
+/* Specific hover effect for timeline milestones */
+.timeline-milestone:hover {
+  transform: translateX(-50%) scale(1.8) !important; /* Slightly different scale for standalone milestones */
+  box-shadow: 0 0 10px rgba(255, 255, 255, 1), 0 0 16px rgba(255, 255, 255, 0.7) !important; /* Enhanced glow */
+  border-color: white !important;
+  z-index: 250 !important; /* Ensure it's above everything else */
+}

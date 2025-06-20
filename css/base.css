@@ -1,0 +1,129 @@
+/* ========================================
+   BASE STYLES
+   Global resets, typography, and layout
+   ======================================== */
+
+/* Global resets */
+* { 
+  box-sizing: border-box; 
+  margin: 0; 
+  padding: 0; 
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #333;
+}
+
+/* Tooltip */
+.tooltip, .chart-tooltip, .map-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: rgba(17, 24, 39, 0.9);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  max-width: 300px;
+  z-index: 1000; /* Ensure tooltip appears above milestone dots */
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.tooltip.show, .chart-tooltip.show, .map-tooltip.show {
+  opacity: 1;
+}
+
+/* Footer styling */
+footer {
+  margin-top: 2rem;
+  padding: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .category-label {
+    width: 120px;
+  }
+}
+
+/* Extra small devices */
+@media (max-width: 480px) {
+  .ui.compact.buttons {
+    width: 100%;
+  }
+  
+  #modification-status.ui.small.yellow.label {
+    margin-left: 0.5em !important;
+    vertical-align: middle !important;
+  }
+}
+
+/* Styles for printable version */
+#printable-version {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  padding: 20px;
+}
+
+#printable-version header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+#printable-version #timeline-container {
+  margin: 20px 0;
+  overflow: visible !important;
+}
+
+#printable-version #charts-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin: 20px 0;
+}
+
+#printable-version footer {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 12px;
+  color: #666;
+}
+
+/* Make sure SVGs and charts are visible in exports */
+#world-heatmap svg,
+#nested-pie-chart svg,
+#world-heatmap canvas,
+#nested-pie-chart canvas {
+  width: 100% !important;
+  height: auto !important;
+  max-height: 400px;
+  overflow: visible !important;
+}
+
+/* Fix for SVG in exports */
+#app svg {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Show all nested elements in exports */
+#app * {
+  break-inside: avoid;
+}
+
+/* Format dialog styling */
+.ui.mini.modal .ui.two.buttons {
+  margin-top: 1rem;
+}
+
+.ui.mini.modal .ui.two.buttons .button {
+  margin: 0 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.ui.mini.modal .ui.two.buttons .button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}

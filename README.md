@@ -2,6 +2,41 @@
 
 Interactive web application to create and visualize timelines.
 
+## Project Structure
+
+This application has been refactored into a modular architecture for better maintainability and development experience:
+
+```
+timeline/
+├── index.html              # Main application entry point
+├── script.js               # Main application coordination and initialization
+├── css/                    # Modular stylesheets
+│   ├── base.css           # Global styles and resets
+│   ├── timeline.css       # Timeline-specific styles
+│   ├── forms.css          # Form-related styles
+│   └── controls.css       # UI controls and buttons
+├── js/                     # Modular JavaScript components
+│   ├── config.js          # App configuration and constants
+│   ├── utils.js           # Utility functions and calculations
+│   ├── data-manager.js    # Import/export and data processing
+│   ├── event-manager.js   # Event CRUD operations
+│   ├── timeline-renderer.js # Timeline visualization
+│   ├── ui-components.js   # UI components and controls
+│   ├── interactions.js    # Zoom, pan, and timeline interactions
+│   ├── visualizations.js # Charts and geographic visualizations
+│   ├── tests.js          # Testing and validation functions
+│   └── template-loader.js # HTML template loading utilities
+├── templates/             # Reusable HTML components
+│   ├── event-form.html   # Event creation/editing form
+│   ├── controls.html     # Import/export controls
+│   ├── timeline-container.html # Timeline layout
+│   ├── charts-container.html   # Visualization charts
+│   └── footer.html       # Application footer
+└── data/                 # Data files
+    ├── events.yaml       # Default timeline events
+    └── ...              # Other data files
+```
+
 Features
 --------
 - Add events with title, start date, end date, color, and metadata.
@@ -19,7 +54,7 @@ Features
 Getting Started
 ---------------
 1. Clone the repository.
-2. Open `index.html` in your browser, or start a simple HTTP server:
+2. Start a simple HTTP server (required for ES6 modules):
    ```bash
    python3 -m http.server 8000
    ```
@@ -27,6 +62,33 @@ Getting Started
    - The app will load predefined events from `data/events.yaml`.
    - Use the form to add new timeline events; check "Life Event" to mark anniversaries.
    - Scroll or use mouse wheel (or pinch) to zoom and pan the timeline.
+
+## Development
+
+### Module System
+The application uses ES6 modules for better code organization. Each module has a specific responsibility:
+
+- **config.js**: Application constants and configuration
+- **utils.js**: Date calculations, formatting, and utility functions
+- **data-manager.js**: File import/export, data validation, and format conversion
+- **event-manager.js**: Event CRUD operations and form management
+- **timeline-renderer.js**: Timeline visualization and rendering
+- **ui-components.js**: UI controls, dropdowns, and interactive elements
+- **interactions.js**: Zoom, pan, and timeline navigation
+- **visualizations.js**: Charts and geographic data visualization
+- **tests.js**: Testing framework and validation functions
+
+### Testing
+Enable development mode by adding `?debug=true` to the URL or running on localhost. This enables:
+- Import/export test suite
+- Parent-child relationship validation
+- Data integrity testing
+
+### Adding New Features
+1. Identify the appropriate module for your feature
+2. Add new functions to the relevant module
+3. Import and use the functions in `script.js` or other modules
+4. Update tests as needed
 
 Data Import/Export
 ------------------
